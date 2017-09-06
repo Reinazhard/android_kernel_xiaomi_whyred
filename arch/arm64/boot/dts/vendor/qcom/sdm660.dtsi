@@ -31,7 +31,7 @@
 
 	chosen {
 		stdout-path = "serial0";
-		bootargs = "rcupdate.rcu_expedited=1 cgroup_disable=pressure cgroup.memory=nokmem,nosocket";
+		bootargs = "rcupdate.rcu_expedited=1 cgroup_disable=pressure cgroup.memory=nokmem,nosocket rcu_nocbs=0-7";
 	};
 
 	psci {
