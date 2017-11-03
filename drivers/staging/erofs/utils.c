@@ -32,7 +32,6 @@ static atomic_long_t erofs_global_shrink_cnt;
 
 #ifdef CONFIG_EROFS_FS_ZIP
 
-/* radix_tree and the future XArray both don't use tagptr_t yet */
 struct erofs_workgroup *erofs_find_workgroup(
 	struct super_block *sb, pgoff_t index, bool *tag)
 {
@@ -44,9 +43,8 @@ repeat:
 	rcu_read_lock();
 	grp = radix_tree_lookup(&sbi->workstn_tree, index);
 	if (grp != NULL) {
-		*tag = radix_tree_exceptional_entry(grp);
-		grp = (void *)((unsigned long)grp &
-			~RADIX_TREE_EXCEPTIONAL_ENTRY);
+		*tag = xa_pointer_tag(grp);
+		grp = xa_untag_pointer(grp);
 
 		if (erofs_workgroup_get(grp, &oldcount)) {
 			/* prefer to relax rcu read side */
@@ -83,9 +81,7 @@ int erofs_register_workgroup(struct super_block *sb,
 	sbi = EROFS_SB(sb);
 	erofs_workstn_lock(sbi);
 
-	if (tag)
-		grp = (void *)((unsigned long)grp |
-			1UL << RADIX_TREE_EXCEPTIONAL_SHIFT);
+	grp = xa_tag_pointer(grp, tag);
 
 	/*
 	 * Bump up reference count before making this workgroup
@@ -219,9 +215,7 @@ repeat:
 		batch, first_index, PAGEVEC_SIZE);
 
 	for (i = 0; i < found; ++i) {
-		struct erofs_workgroup *grp = (void *)
-			((unsigned long)batch[i] &
-				~RADIX_TREE_EXCEPTIONAL_ENTRY);
+		struct erofs_workgroup *grp = xa_untag_pointer(batch[i]);
 
 		first_index = grp->index + 1;
 
