@@ -35,6 +35,7 @@
 	qcom,fg-recharge-voltage = <4320>;
 	qcom,fg-jeita-thresholds = <0 15 45 60>;
 	qcom,fg-jeita-hyst-temp = <0>;
+	qcom,fg-force-load-profile;
 };
 
 &pm660_haptics {
