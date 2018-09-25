@@ -32,8 +32,6 @@
 #include <asm/cpufeature.h>
 #include <linux/msm_rtb.h>
 
-#include <xen/xen.h>
-
 /*
  * Generic IO read/write.  These perform native-endian accesses.
  * that some architectures will want to re-define __raw_{read,write}w.
