@@ -2010,6 +2010,16 @@ void dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
 
 	/* io_pages is used for readahead */
 	q->backing_dev_info->io_pages = limits->max_sectors >> (PAGE_SHIFT - 9);
+
+	/*
+	 * For a zoned target, the number of zones should be updated for the
+	 * correct value to be exposed in sysfs queue/nr_zones. For a BIO based
+	 * target, this is all that is needed. For a request based target, the
+	 * queue zone bitmaps must also be updated.
+	 * Use blk_revalidate_disk_zones() to handle this.
+	 */
+	if (blk_queue_is_zoned(q))
+		blk_revalidate_disk_zones(t->md->disk);
 }
 
 unsigned int dm_table_get_num_targets(struct dm_table *t)
