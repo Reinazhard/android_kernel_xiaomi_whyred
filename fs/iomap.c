@@ -1967,7 +1967,8 @@ iomap_dio_rw(struct kiocb *iocb, struct iov_iter *iter,
 			return -EIOCBQUEUED;
 
 		for (;;) {
-			set_current_state(TASK_UNINTERRUPTIBLE);
+			__set_current_state(TASK_UNINTERRUPTIBLE);
+
 			if (!READ_ONCE(dio->submit.waiter))
 				break;
 
