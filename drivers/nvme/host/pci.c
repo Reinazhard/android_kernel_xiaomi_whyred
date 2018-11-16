@@ -994,11 +994,11 @@ static int __nvme_poll(struct nvme_queue *nvmeq, unsigned int tag)
 	return found;
 }
 
-static int nvme_poll(struct blk_mq_hw_ctx *hctx, unsigned int tag)
+static int nvme_poll(struct blk_mq_hw_ctx *hctx)
 {
 	struct nvme_queue *nvmeq = hctx->driver_data;
 
-	return __nvme_poll(nvmeq, tag);
+	return __nvme_poll(nvmeq, -1);
 }
 
 static void nvme_pci_submit_async_event(struct nvme_ctrl *ctrl)
