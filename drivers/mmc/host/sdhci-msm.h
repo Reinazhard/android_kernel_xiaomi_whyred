@@ -325,6 +325,7 @@ struct sdhci_msm_host {
 	bool vbias_skip_wa;
 	struct reset_control *core_reset;
 	u32 minor;
+	struct device_attribute mmc_manual_gc_attr;
 };
 
 extern char *saved_command_line;
