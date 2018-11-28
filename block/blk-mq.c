@@ -1825,7 +1825,8 @@ void blk_mq_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 	list_splice_init(&plug->mq_list, &list);
 	plug->rq_count = 0;
 
-	list_sort(NULL, &list, plug_rq_cmp);
+	if (plug->rq_count > 2 && plug->multiple_queues)
+		list_sort(NULL, &list, plug_rq_cmp);
 
 	this_q = NULL;
 	this_hctx = NULL;
@@ -2026,6 +2027,20 @@ void blk_mq_try_issue_list_directly(struct blk_mq_hw_ctx *hctx,
 	}
 }
 
+static void blk_add_rq_to_plug(struct blk_plug *plug, struct request *rq)
+{
+	list_add_tail(&rq->queuelist, &plug->mq_list);
+	plug->rq_count++;
+	if (!plug->multiple_queues && !list_is_singular(&plug->mq_list)) {
+		struct request *tmp;
+
+		tmp = list_first_entry(&plug->mq_list, struct request,
+						queuelist);
+		if (tmp->q != rq->q)
+			plug->multiple_queues = true;
+	}
+}
+
 /**
  * blk_mq_make_request - Create and send a request to block device.
  * @q: Request queue pointer.
@@ -2106,8 +2121,7 @@ static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
 			trace_block_plug(q);
 		}
 
-		list_add_tail(&rq->queuelist, &plug->mq_list);
-		plug->rq_count++;
+		blk_add_rq_to_plug(plug, rq);
 	} else if (plug && !blk_queue_nomerges(q)) {
 		blk_mq_bio_to_request(rq, bio);
 
@@ -2124,8 +2138,7 @@ static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
 			list_del_init(&same_queue_rq->queuelist);
 			plug->rq_count--;
 		}
-		list_add_tail(&rq->queuelist, &plug->mq_list);
-		plug->rq_count++;
+		blk_add_rq_to_plug(plug, rq);
 
 		blk_mq_put_ctx(data.ctx);
 
