@@ -261,15 +261,15 @@ static inline void iolat_update_total_lat_avg(struct iolatency_grp *iolat,
 	CALC_LOAD(iolat->lat_avg, iolatency_exp_factors[exp_idx], stat->rqs.mean);
 }
 
-static inline bool iolatency_may_queue(struct iolatency_grp *iolat,
-				       wait_queue_entry_t *wait,
-				       bool first_block)
+static void iolat_cleanup_cb(struct rq_wait *rqw, void *private_data)
 {
-	struct rq_wait *rqw = &iolat->rq_wait;
+	atomic_dec(&rqw->inflight);
+	wake_up(&rqw->wait);
+}
 
-	if (first_block && waitqueue_active(&rqw->wait) &&
-	    rqw->wait.head.next != &wait->entry)
-		return false;
+static bool iolat_acquire_inflight(struct rq_wait *rqw, void *private_data)
+{
+	struct iolatency_grp *iolat = private_data;
 	return rq_wait_inc_below(rqw, iolat->rq_depth.max_depth);
 }
 
@@ -280,8 +280,6 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
 {
 	struct rq_wait *rqw = &iolat->rq_wait;
 	unsigned use_delay = atomic_read(&lat_to_blkg(iolat)->use_delay);
-	DEFINE_WAIT(wait);
-	bool first_block = true;
 
 	if (use_delay)
 		blkcg_schedule_throttle(rqos->q, use_memdelay);
@@ -298,20 +296,7 @@ static void __blkcg_iolatency_throttle(struct rq_qos *rqos,
 		return;
 	}
 
-	if (iolatency_may_queue(iolat, &wait, first_block))
-		return;
-
-	do {
-		prepare_to_wait_exclusive(&rqw->wait, &wait,
-					  TASK_UNINTERRUPTIBLE);
-
-		if (iolatency_may_queue(iolat, &wait, first_block))
-			break;
-		first_block = false;
-		io_schedule();
-	} while (1);
-
-	finish_wait(&rqw->wait, &wait);
+	rq_qos_wait(rqw, iolat, iolat_acquire_inflight, iolat_cleanup_cb);
 }
 
 #define SCALE_DOWN_FACTOR 2
