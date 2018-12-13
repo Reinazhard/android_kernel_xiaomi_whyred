@@ -343,7 +343,6 @@ struct queue_limits {
 
 	unsigned char		misaligned;
 	unsigned char		discard_misaligned;
-	unsigned char		cluster;
 	unsigned char		raid_partial_stripes_expensive;
 	enum blk_zoned_model	zoned;
 };
@@ -666,11 +665,6 @@ static inline bool blk_account_rq(struct request *rq)
 static inline bool queue_is_mq(struct request_queue *q)
 {
 	return q->mq_ops;
-}
-
-static inline unsigned int blk_queue_cluster(struct request_queue *q)
-{
-	return q->limits.cluster;
 }
 
 static inline enum blk_zoned_model
