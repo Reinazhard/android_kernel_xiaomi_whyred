@@ -364,6 +364,11 @@ struct scsi_host_template {
 	unsigned int max_sectors;
 
 	/*
+	 * Maximum size in bytes of a single segment.
+	 */
+	unsigned int max_segment_size;
+
+	/*
 	 * DMA scatter gather segment boundary limit. A segment crossing this
 	 * boundary will be split in two.
 	 */
@@ -604,6 +609,7 @@ struct Scsi_Host {
 	short unsigned int sg_tablesize;
 	short unsigned int sg_prot_tablesize;
 	unsigned int max_sectors;
+	unsigned int max_segment_size;
 	unsigned long dma_boundary;
 	/*
 	 * In scsi-mq mode, the number of hardware queues supported by the LLD.
