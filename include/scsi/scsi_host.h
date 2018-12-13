@@ -43,8 +43,7 @@ struct scsi_transport_template;
 #define MODE_INITIATOR 0x01
 #define MODE_TARGET 0x02
 
-#define DISABLE_CLUSTERING 0
-#define ENABLE_CLUSTERING 1
+#define DISABLE_CLUSTERING (-1)
 
 struct scsi_host_template {
 	struct module *module;
