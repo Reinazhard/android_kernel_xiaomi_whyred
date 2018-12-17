@@ -244,6 +244,7 @@ struct bio {
 #define BIO_TRACE_COMPLETION 11	/* bio_endio() should trace the final completion
 				 * of this bio. */
 #define BIO_QUEUE_ENTERED 12	/* can use blk_queue_enter_live() */
+#define BIO_TRACKED 13		/* set if bio goes through the rq_qos path */
 
 /* See BVEC_POOL_OFFSET below before adding new flags */
 
