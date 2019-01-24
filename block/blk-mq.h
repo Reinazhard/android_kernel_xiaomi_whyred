@@ -104,12 +104,12 @@ static inline struct blk_mq_hw_ctx *blk_mq_map_queue(struct request_queue *q,
 {
 	enum hctx_type type = HCTX_TYPE_DEFAULT;
 
-	if (q->tag_set->nr_maps > HCTX_TYPE_POLL &&
-	    ((flags & REQ_HIPRI) && test_bit(QUEUE_FLAG_POLL, &q->queue_flags)))
+	/*
+	 * The caller ensure that if REQ_HIPRI, poll must be enabled.
+	 */
+	if (flags & REQ_HIPRI)
 		type = HCTX_TYPE_POLL;
-
-	else if (q->tag_set->nr_maps > HCTX_TYPE_READ &&
-		 ((flags & REQ_OP_MASK) == REQ_OP_READ))
+	else if ((flags & REQ_OP_MASK) == REQ_OP_READ)
 		type = HCTX_TYPE_READ;
 	
 	return ctx->hctxs[type];
