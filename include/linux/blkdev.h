@@ -593,7 +593,6 @@ struct request_queue {
 #define QUEUE_FLAG_SAME_FORCE  15	/* force complete on same CPU */
 #define QUEUE_FLAG_DEAD        16	/* queue tear-down finished */
 #define QUEUE_FLAG_INIT_DONE   17	/* queue is initialized */
-#define QUEUE_FLAG_NO_SG_MERGE 18	/* don't attempt to merge SG segments*/
 #define QUEUE_FLAG_POLL	       19	/* IO polling enabled if set */
 #define QUEUE_FLAG_WC	       20	/* Write back caching */
 #define QUEUE_FLAG_FUA	       21	/* device supports FUA writes */
