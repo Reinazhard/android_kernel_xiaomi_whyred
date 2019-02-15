@@ -72,8 +72,9 @@ static void __read_end_io(struct bio *bio)
 	struct page *page;
 	struct bio_vec *bv;
 	int i;
+	struct bvec_iter_all iter_all;
 
-	bio_for_each_segment_all(bv, bio, i) {
+	bio_for_each_segment_all(bv, bio, i, iter_all) {
 		page = bv->bv_page;
 
 		/* PG_error was set if any post_read step failed */
