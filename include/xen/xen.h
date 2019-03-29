@@ -40,7 +40,9 @@ extern uint32_t xen_start_flags;
 #endif	/* CONFIG_XEN_DOM0 */
 
 struct bio_vec;
+struct page;
+
 bool xen_biovec_phys_mergeable(const struct bio_vec *vec1,
-		const struct bio_vec *vec2);
+		const struct page *page);
 
 #endif	/* _XEN_XEN_H */
