@@ -176,7 +176,6 @@ csum_failed:
 	if (cb->errors) {
 		bio_io_error(cb->orig_bio);
 	} else {
-		int i;
 		struct bio_vec *bvec;
 		struct bvec_iter_all iter_all;
 
@@ -185,7 +184,7 @@ csum_failed:
 		 * checked so the end_io handlers know about it
 		 */
 		ASSERT(!bio_flagged(bio, BIO_CLONED));
-		bio_for_each_segment_all(bvec, cb->orig_bio, i, iter_all)
+		bio_for_each_segment_all(bvec, cb->orig_bio, iter_all)
 			SetPageChecked(bvec->bv_page);
 
 		bio_endio(cb->orig_bio);

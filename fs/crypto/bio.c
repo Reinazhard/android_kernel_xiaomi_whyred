@@ -29,10 +29,9 @@
 void fscrypt_decrypt_bio(struct bio *bio)
 {
 	struct bio_vec *bv;
-	int i;
 	struct bvec_iter_all iter_all;
 
-	bio_for_each_segment_all(bv, bio, i, iter_all) {
+	bio_for_each_segment_all(bv, bio, iter_all) {
 		struct page *page = bv->bv_page;
 		int ret = fscrypt_decrypt_pagecache_blocks(page,
 							   bv->bv_len,

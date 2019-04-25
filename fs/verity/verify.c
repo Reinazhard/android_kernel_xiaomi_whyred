@@ -227,7 +227,6 @@ void fsverity_verify_bio(struct bio *bio)
 	const struct merkle_tree_params *params = &vi->tree_params;
 	struct ahash_request *req;
 	struct bio_vec *bv;
-	int i;
 	unsigned long max_ra_pages = 0;
 	struct bvec_iter_all iter_all;
 
@@ -244,12 +243,12 @@ void fsverity_verify_bio(struct bio *bio)
 		 * This improves sequential read performance, as it greatly
 		 * reduces the number of I/O requests made to the Merkle tree.
 		 */
-		bio_for_each_segment_all(bv, bio, i, iter_all)
+		bio_for_each_segment_all(bv, bio, iter_all)
 			max_ra_pages++;
 		max_ra_pages /= 4;
 	}
 
-	bio_for_each_segment_all(bv, bio, i, iter_all) {
+	bio_for_each_segment_all(bv, bio, iter_all) {
 		struct page *page = bv->bv_page;
 		unsigned long level0_index = page->index >> params->log_arity;
 		unsigned long level0_ra_pages =
