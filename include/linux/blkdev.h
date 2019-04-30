@@ -548,6 +548,13 @@ struct request_queue {
 
 	struct mutex		sysfs_lock;
 
+	/*
+	 * for reusing dead hctx instance in case of updating
+	 * nr_hw_queues
+	 */
+	struct list_head	unused_hctx_list;
+	spinlock_t		unused_hctx_lock;
+
 	atomic_t		mq_freeze_depth;
 
 	struct bsg_class_device bsg_dev;
