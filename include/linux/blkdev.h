@@ -555,7 +555,7 @@ struct request_queue {
 	struct list_head	unused_hctx_list;
 	spinlock_t		unused_hctx_lock;
 
-	atomic_t		mq_freeze_depth;
+	int			mq_freeze_depth;
 
 	struct bsg_class_device bsg_dev;
 
@@ -565,6 +565,11 @@ struct request_queue {
 #endif
 	struct rcu_head		rcu_head;
 	wait_queue_head_t	mq_freeze_wq;
+	/*
+	 * Protect concurrent access to q_usage_counter by
+	 * percpu_ref_kill() and percpu_ref_reinit().
+	 */
+	struct mutex		mq_freeze_lock;
 	struct percpu_ref	q_usage_counter;
 	struct list_head	all_q_node;
 
