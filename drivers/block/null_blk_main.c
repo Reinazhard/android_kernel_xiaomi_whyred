@@ -1585,7 +1585,6 @@ static int setup_queues(struct nullb *nullb)
 	if (!nullb->queues)
 		return -ENOMEM;
 
-	nullb->nr_queues = 0;
 	nullb->queue_depth = nullb->dev->hw_queue_depth;
 
 	return 0;
