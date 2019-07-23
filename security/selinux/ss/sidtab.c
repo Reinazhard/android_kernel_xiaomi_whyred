@@ -264,6 +264,11 @@ int sidtab_context_to_sid(struct sidtab *s, struct context *context,
 	if (count >= SIDTAB_MAX)
 		goto out_unlock;
 
+	/* bail out if we already reached max entries */
+	rc = -EOVERFLOW;
+	if (count >= SIDTAB_MAX)
+		goto out_unlock;
+
 	/* insert context into new entry */
 	rc = -ENOMEM;
 	dst = sidtab_do_lookup(s, count, 1);
