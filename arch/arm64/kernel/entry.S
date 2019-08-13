@@ -656,7 +656,8 @@ el1_irq:
 
 #ifdef CONFIG_PREEMPT
 	ldr	w24, [tsk, #TSK_TI_PREEMPT]	// get preempt count
-	cbnz	w24, 2f				// preempt count != 0
+	cbz	x24, 1f				// (need_resched + count) == 0
+	cbnz	w24, 2f				// count != 0
 	ldr	x0, [tsk, #TSK_TI_FLAGS]	// get flags
 	tbnz	x0, #TIF_NEED_RESCHED, 1f	// needs rescheduling?
 
