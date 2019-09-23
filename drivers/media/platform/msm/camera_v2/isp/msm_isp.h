@@ -758,7 +758,6 @@ struct msm_vfe_common_dev_data {
 	/* Irq debug Info */
 	struct msm_vfe_irq_dump vfe_irq_dump;
 	struct msm_vfe_tasklet tasklets[MAX_VFE + 1];
-	uint32_t drop_reconfig;
 };
 
 struct msm_vfe_common_subdev {
@@ -870,7 +869,6 @@ struct vfe_device {
 	bool dual_isp_sync_irq_enabled;
 	/* irq info */
 	uint32_t dual_irq_mask;
-	uint32_t irq_sof_id;
 
 	/* nano sec timestamp */
 	uint32_t nanosec_ts_enable;
