@@ -851,8 +851,10 @@ static int avc_update_node(struct selinux_avc *avc,
 	 * and won't audit anything at all, leading to silent denials in
 	 * permissive mode that only appear when in enforcing mode.
 	 *
-	 * See the corresponding handling of MAY_NOT_BLOCK in avc_audit()
-	 * and selinux_inode_permission().
+	 * See the corresponding handling in slow_avc_audit(), and the
+	 * logic in selinux_inode_follow_link and selinux_inode_permission
+	 * for the VFS MAY_NOT_BLOCK flag, which is transliterated into
+	 * AVC_NONBLOCKING for avc_has_perm_noaudit().
 	 */
 	if (flags & AVC_NONBLOCKING)
 		return 0;
