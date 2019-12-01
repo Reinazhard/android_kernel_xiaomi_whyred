@@ -128,13 +128,11 @@ static struct notifier_block cma_nb = {
 
 static int __init cma_activate_area(struct cma *cma)
 {
-	int bitmap_size = BITS_TO_LONGS(cma_bitmap_maxno(cma)) * sizeof(long);
 	unsigned long base_pfn = cma->base_pfn, pfn = base_pfn;
 	unsigned i = cma->count >> pageblock_order;
 	struct zone *zone;
 
-	cma->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
-
+	cma->bitmap = bitmap_zalloc(cma_bitmap_maxno(cma), GFP_KERNEL);
 	if (!cma->bitmap) {
 		cma->count = 0;
 		return -ENOMEM;
@@ -176,7 +174,7 @@ static int __init cma_activate_area(struct cma *cma)
 
 not_in_zone:
 	pr_err("CMA area %s could not be activated\n", cma->name);
-	kfree(cma->bitmap);
+	bitmap_free(cma->bitmap);
 	cma->count = 0;
 	return -EINVAL;
 }
