@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
+ *
  */
 
 #ifndef __FG_CORE_H__
@@ -102,6 +104,13 @@ enum prof_load_status {
 	PROFILE_SKIPPED,
 	PROFILE_NOT_LOADED,
 };
+
+#ifdef CONFIG_MACH_MI
+#define VBAT_RESTART_FG_EMPTY_UV	3700000
+#define TEMP_THR_RESTART_FG		150
+#define RESTART_FG_START_WORK_MS	1000
+#define RESTART_FG_WORK_MS		2000
+#endif
 
 /* Debug flag definitions */
 enum fg_debug_flag {
@@ -337,6 +346,9 @@ struct fg_batt_props {
 	int		therm_pull_up_kohms;
 	int		*rslow_normal_coeffs;
 	int		*rslow_low_coeffs;
+#ifdef CONFIG_MACH_MI
+	int		nom_cap_uah;
+#endif
 };
 
 struct fg_cyc_ctr_data {
@@ -427,6 +439,24 @@ struct fg_memif {
 	u8			num_bytes_per_word;
 };
 
+#ifdef CONFIG_MACH_MI
+#define BATT_MA_AVG_SAMPLES		8
+struct batt_params {
+	bool		update_now;
+	int		batt_raw_soc;
+	int		batt_soc;
+	int		samples_num;
+	int		samples_index;
+	int		batt_ma_avg_samples[BATT_MA_AVG_SAMPLES];
+	int		batt_ma_avg;
+	int		batt_ma_prev;
+	int		batt_ma;
+	int		batt_mv;
+	int		batt_temp;
+	struct timespec	last_soc_change_time;
+};
+#endif
+
 struct fg_dev {
 	struct thermal_zone_device	*tz_dev;
 	struct device		*dev;
@@ -487,9 +517,6 @@ struct fg_dev {
 	bool			battery_missing;
 	bool			fg_restarting;
 	bool			charge_full;
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
-	bool			report_full;
-#endif
 	bool			recharge_soc_adjusted;
 	bool			soc_reporting_ready;
 	bool			use_ima_single_mode;
@@ -499,11 +526,23 @@ struct fg_dev {
 	bool			qnovo_enable;
 	enum fg_version		version;
 	bool			suspended;
+#if defined(CONFIG_MACH_XIAOMI_WAYNE) || defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_MI)
+	bool			report_full;
+#endif
+#ifdef CONFIG_MACH_MI
+	bool			empty_restart_fg;
+	struct batt_params	param;
+	struct delayed_work	soc_monitor_work;
+	struct delayed_work	soc_work;
+	struct delayed_work	empty_restart_fg_work;
+#endif
+
 	struct completion	soc_update;
 	struct completion	soc_ready;
 	struct delayed_work	profile_load_work;
 	struct work_struct	status_change_work;
 	struct work_struct	esr_sw_work;
+	struct delayed_work	esr_timer_config_work;
 	struct delayed_work	sram_dump_work;
 	struct work_struct	esr_filter_work;
 	struct alarm		esr_filter_alarm;

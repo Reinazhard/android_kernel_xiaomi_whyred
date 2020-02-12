@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
+ *
  */
 
 #ifndef __SMB2_CHARGER_REG_H
@@ -370,6 +372,9 @@ enum {
 #define OTG_ENG_OTG_CFG_REG		(OTG_BASE + 0xC0)
 #define ENG_BUCKBOOST_HALT1_8_MODE_BIT	BIT(0)
 
+#ifdef CONFIG_MACH_MI
+#define OTG_ENG_HICCUP_MODE		(OTG_BASE + 0xE2)
+#endif
 /* BATIF Peripheral Registers */
 /* BATIF Interrupt Bits */
 #define BAT_7_RT_STS_BIT			BIT(7)
@@ -644,6 +649,9 @@ enum {
 #define USBIN_LOAD_CFG_REG			(USBIN_BASE + 0x65)
 #define USBIN_OV_CH_LOAD_OPTION_BIT		BIT(7)
 #define ICL_OVERRIDE_AFTER_APSD_BIT		BIT(4)
+#ifdef CONFIG_MACH_MI
+#define USBIN_COLLAPSE_SEL_MASK                 GENMASK(1, 0)
+#endif
 
 #define USBIN_ICL_OPTIONS_REG			(USBIN_BASE + 0x66)
 #define CFG_USB3P0_SEL_BIT			BIT(2)

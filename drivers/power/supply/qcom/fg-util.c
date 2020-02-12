@@ -400,6 +400,7 @@ void fg_notify_charger(struct fg_dev *fg)
 		}
 	}
 
+#ifndef CONFIG_MACH_MI
 	if (fg->bp.fastchg_curr_ma > 0) {
 		prop.intval = fg->bp.fastchg_curr_ma * 1000;
 		rc = power_supply_set_property(fg->batt_psy,
@@ -411,6 +412,7 @@ void fg_notify_charger(struct fg_dev *fg)
 			return;
 		}
 	}
+#endif
 }
 
 bool batt_psy_initialized(struct fg_dev *fg)
@@ -915,7 +917,7 @@ int fg_get_msoc(struct fg_dev *fg, int *msoc)
 	 */
 	if (*msoc == FULL_SOC_RAW)
 		*msoc = 100;
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE) || defined(CONFIG_MACH_MI)
 	else if ((*msoc >= FULL_SOC_REPORT_THR - 2)
 			&& (*msoc < FULL_SOC_RAW) && fg->report_full) {
 		*msoc = DIV_ROUND_CLOSEST(*msoc * FULL_CAPACITY, FULL_SOC_RAW) + 1;

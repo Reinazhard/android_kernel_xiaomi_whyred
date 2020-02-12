@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2017-2019 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
+ *
  */
 
 #ifndef __STEP_CHG_H__
@@ -24,6 +26,9 @@ struct range_data {
 
 int qcom_step_chg_init(struct device *dev,
 		bool step_chg_enable, bool sw_jeita_enable, bool jeita_arb_en);
+#ifdef CONFIG_MACH_MI
+int qcom_soft_jeita_fcc_init(int critical_low_fcc, int cool_fcc, int normal_cool_fcc, int normal_fcc, int warm_fcc);
+#endif
 void qcom_step_chg_deinit(void);
 int read_range_data_from_node(struct device_node *node,
 		const char *prop_str, struct range_data *ranges,
