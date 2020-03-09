@@ -150,9 +150,6 @@ static void blk_flush_queue_rq(struct request *rq, bool add_front)
  *
  * CONTEXT:
  * spin_lock_irq(fq->mq_flush_lock)
- *
- * RETURNS:
- * %true if requests were added to the dispatch queue, %false otherwise.
  */
 static void blk_flush_complete_seq(struct request *rq,
 				   struct blk_flush_queue *fq,
