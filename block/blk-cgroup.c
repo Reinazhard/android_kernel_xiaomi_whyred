@@ -1181,7 +1181,7 @@ unlock:
  * blkcg_init_queue - initialize blkcg part of request queue
  * @q: request_queue to initialize
  *
- * Called from blk_alloc_queue_node(). Responsible for initializing blkcg
+ * Called from __blk_alloc_queue(). Responsible for initializing blkcg
  * part of new request_queue @q.
  *
  * RETURNS:

@@ -370,11 +370,10 @@ static struct brd_device *brd_alloc(int i)
 	spin_lock_init(&brd->brd_lock);
 	INIT_RADIX_TREE(&brd->brd_pages, GFP_ATOMIC);
 
-	brd->brd_queue = blk_alloc_queue(GFP_KERNEL);
+	brd->brd_queue = blk_alloc_queue(brd_make_request, NUMA_NO_NODE);
 	if (!brd->brd_queue)
 		goto out_free_dev;
 
-	blk_queue_make_request(brd->brd_queue, brd_make_request);
 	blk_queue_max_hw_sectors(brd->brd_queue, 1024);
 
 	/* This is so fdisk will align partitions on 4k, because of

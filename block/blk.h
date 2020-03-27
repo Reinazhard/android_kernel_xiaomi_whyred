@@ -357,4 +357,6 @@ void blk_queue_free_zone_bitmaps(struct request_queue *q);
 static inline void blk_queue_free_zone_bitmaps(struct request_queue *q) {}
 #endif
 
+struct request_queue *__blk_alloc_queue(int node_id);
+
 #endif /* BLK_INTERNAL_H */
