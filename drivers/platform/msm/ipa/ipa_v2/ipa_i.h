@@ -887,10 +887,12 @@ struct ipa_active_clients {
 	int cnt;
 };
 
+#if 0
 struct ipa_wakelock_ref_cnt {
 	spinlock_t spinlock;
 	u32 cnt;
 };
+#endif
 
 struct ipa_tag_completion {
 	struct completion comp;
@@ -1219,8 +1221,10 @@ struct ipa_context {
 	u32 peer_bam_map_cnt;
 	u32 wdi_map_cnt;
 	bool use_dma_zone;
+#if 0
 	struct wakeup_source *w_lock;
 	struct ipa_wakelock_ref_cnt wakelock_ref_cnt;
+#endif
 
 	/* RMNET_IOCTL_INGRESS_FORMAT_AGG_DATA */
 	bool ipa_client_apps_wan_cons_agg_gro;

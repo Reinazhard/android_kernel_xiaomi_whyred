@@ -3372,6 +3372,7 @@ void ipa2_dec_client_disable_clks(struct ipa_active_client_logging_info *id)
  */
 void ipa_inc_acquire_wakelock(enum ipa_wakelock_ref_client ref_client)
 {
+#if 0
 	unsigned long flags;
 
 	if (ref_client >= IPA_WAKELOCK_REF_CLIENT_MAX)
@@ -3384,6 +3385,7 @@ void ipa_inc_acquire_wakelock(enum ipa_wakelock_ref_client ref_client)
 	IPADBG_LOW("active wakelock ref cnt = %d client enum %d\n",
 		ipa_ctx->wakelock_ref_cnt.cnt, ref_client);
 	spin_unlock_irqrestore(&ipa_ctx->wakelock_ref_cnt.spinlock, flags);
+#endif
 }
 
 /**
@@ -3396,6 +3398,7 @@ void ipa_inc_acquire_wakelock(enum ipa_wakelock_ref_client ref_client)
  */
 void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client)
 {
+#if 0
 	unsigned long flags;
 
 	if (ref_client >= IPA_WAKELOCK_REF_CLIENT_MAX)
@@ -3405,6 +3408,7 @@ void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client)
 	IPADBG_LOW("active wakelock ref cnt = %d client enum %d\n",
 		ipa_ctx->wakelock_ref_cnt.cnt, ref_client);
 	spin_unlock_irqrestore(&ipa_ctx->wakelock_ref_cnt.spinlock, flags);
+#endif
 }
 
 static int ipa_setup_bam_cfg(const struct ipa_plat_drv_res *res)
@@ -4225,6 +4229,7 @@ static int ipa_init(const struct ipa_plat_drv_res *resource_p,
 		goto fail_nat_dev_add;
 	}
 
+#if 0
 	/* Register a wakeup source. */
 	ipa_ctx->w_lock =
 		wakeup_source_register(&ipa_pdev->dev, "IPA_WS");
@@ -4235,6 +4240,7 @@ static int ipa_init(const struct ipa_plat_drv_res *resource_p,
 	}
 
 	spin_lock_init(&ipa_ctx->wakelock_ref_cnt.spinlock);
+#endif
 
 	/* Initialize the SPS PM lock. */
 	mutex_init(&ipa_ctx->sps_pm.sps_pm_lock);
@@ -4319,9 +4325,11 @@ fail_ipa_interrupts_init:
 fail_create_apps_resource:
 	ipa_rm_exit();
 fail_ipa_rm_init:
+#if 0
 	wakeup_source_unregister(ipa_ctx->w_lock);
 	ipa_ctx->w_lock = NULL;
 fail_w_source_register:
+#endif
 fail_nat_dev_add:
 	cdev_del(&ipa_ctx->cdev);
 fail_cdev_add:
