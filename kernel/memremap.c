@@ -393,7 +393,6 @@ void __put_devmap_managed_page(struct page *page)
 	 */
 	if (count == 1) {
 		/* Clear Active bit in case of parallel mark_page_accessed */
-		__ClearPageActive(page);
 		__ClearPageWaiters(page);
 
 		mem_cgroup_uncharge(page);
