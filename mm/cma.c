@@ -126,17 +126,15 @@ static struct notifier_block cma_nb = {
 	.notifier_call = cma_showmem_notifier,
 };
 
-static int __init cma_activate_area(struct cma *cma)
+static void __init cma_activate_area(struct cma *cma)
 {
 	unsigned long base_pfn = cma->base_pfn, pfn = base_pfn;
 	unsigned i = cma->count >> pageblock_order;
 	struct zone *zone;
 
 	cma->bitmap = bitmap_zalloc(cma_bitmap_maxno(cma), GFP_KERNEL);
-	if (!cma->bitmap) {
-		cma->count = 0;
-		return -ENOMEM;
-	}
+	if (!cma->bitmap)
+		goto out_error;
 
 	WARN_ON_ONCE(!pfn_valid(pfn));
 	zone = page_zone(pfn_to_page(pfn));
@@ -170,25 +168,22 @@ static int __init cma_activate_area(struct cma *cma)
 		kmemleak_free_part(__va(cma->base_pfn << PAGE_SHIFT),
 				cma->count << PAGE_SHIFT);
 
-	return 0;
+	return;
 
 not_in_zone:
-	pr_err("CMA area %s could not be activated\n", cma->name);
 	bitmap_free(cma->bitmap);
+out_error:
 	cma->count = 0;
-	return -EINVAL;
+	pr_err("CMA area %s could not be activated\n", cma->name);
+	return;
 }
 
 static int __init cma_init_reserved_areas(void)
 {
 	int i;
 
-	for (i = 0; i < cma_area_count; i++) {
-		int ret = cma_activate_area(&cma_areas[i]);
-
-		if (ret)
-			return ret;
-	}
+	for (i = 0; i < cma_area_count; i++)
+		cma_activate_area(&cma_areas[i]);
 
 	show_mem_notifier_register(&cma_nb);
 
