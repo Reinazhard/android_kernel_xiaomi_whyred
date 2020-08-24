@@ -596,16 +596,16 @@ HUF_compress1X_usingCTable_internal_body(void* dst, size_t dstSize,
         case 3:
             HUF_encodeSymbol(&bitC, ip[n+ 2], CTable);
             HUF_FLUSHBITS_2(&bitC);
-            ZSTD_FALLTHROUGH;
+            /* fall through */
         case 2:
             HUF_encodeSymbol(&bitC, ip[n+ 1], CTable);
             HUF_FLUSHBITS_1(&bitC);
-            ZSTD_FALLTHROUGH;
+            /* fall through */
         case 1:
             HUF_encodeSymbol(&bitC, ip[n+ 0], CTable);
             HUF_FLUSHBITS(&bitC);
-            ZSTD_FALLTHROUGH;
-        case 0: ZSTD_FALLTHROUGH;
+            /* fall through */
+        case 0: /* fall through */
         default: break;
     }
 

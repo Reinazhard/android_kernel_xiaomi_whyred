@@ -161,13 +161,6 @@
  */
 #define ZSTD_HAS_CPP_ATTRIBUTE(x) 0
 
-/* Define ZSTD_FALLTHROUGH macro for annotating switch case with the 'fallthrough' attribute.
- * - C23: https://en.cppreference.com/w/c/language/attributes/fallthrough
- * - CPP17: https://en.cppreference.com/w/cpp/language/attributes/fallthrough
- * - Else: __attribute__((__fallthrough__))
- */
-#define ZSTD_FALLTHROUGH fallthrough
-
 /* detects whether we are being compiled under msan */
 
 
