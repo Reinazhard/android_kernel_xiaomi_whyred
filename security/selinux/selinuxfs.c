@@ -76,7 +76,6 @@ struct selinux_fs_info {
 	unsigned long last_class_ino;
 	bool policy_opened;
 	struct dentry *policycap_dir;
-	struct mutex mutex;
 	unsigned long last_ino;
 	struct selinux_state *state;
 	struct super_block *sb;
@@ -90,7 +89,6 @@ static int selinux_fs_info_create(struct super_block *sb)
 	if (!fsi)
 		return -ENOMEM;
 
-	mutex_init(&fsi->mutex);
 	fsi->last_ino = SEL_INO_NEXT - 1;
 	fsi->state = &selinux_state;
 	fsi->sb = sb;
@@ -401,7 +399,7 @@ static int sel_open_policy(struct inode *inode, struct file *filp)
 
 	BUG_ON(filp->private_data);
 
-	mutex_lock(&fsi->mutex);
+	mutex_lock(&fsi->state->policy_mutex);
 
 	rc = avc_has_perm(&selinux_state,
 			  current_sid(), SECINITSID_SECURITY,
@@ -432,11 +430,11 @@ static int sel_open_policy(struct inode *inode, struct file *filp)
 
 	filp->private_data = plm;
 
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 
 	return 0;
 err:
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 
 	if (plm)
 		vfree(plm->data);
@@ -623,7 +621,7 @@ static ssize_t sel_write_load(struct file *file, const char __user *buf,
 	ssize_t length;
 	void *data = NULL;
 
-	mutex_lock(&fsi->mutex);
+	mutex_lock(&fsi->state->policy_mutex);
 
 	length = avc_has_perm(&selinux_state,
 			      current_sid(), SECINITSID_SECURITY,
@@ -667,7 +665,7 @@ out1:
 		from_kuid(&init_user_ns, audit_get_loginuid(current)),
 		audit_get_sessionid(current));
 out:
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 	vfree(data);
 	return length;
 }
@@ -1272,7 +1270,7 @@ static ssize_t sel_read_bool(struct file *filep, char __user *buf,
 	unsigned index = file_inode(filep)->i_ino & SEL_INO_MASK;
 	const char *name = filep->f_path.dentry->d_name.name;
 
-	mutex_lock(&fsi->mutex);
+	mutex_lock(&fsi->state->policy_mutex);
 
 	ret = -EINVAL;
 	if (index >= fsi->bool_num || strcmp(name,
@@ -1291,14 +1289,14 @@ static ssize_t sel_read_bool(struct file *filep, char __user *buf,
 	}
 	length = scnprintf(page, PAGE_SIZE, "%d %d", cur_enforcing,
 			  fsi->bool_pending_values[index]);
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 	ret = simple_read_from_buffer(buf, count, ppos, page, length);
 out_free:
 	free_page((unsigned long)page);
 	return ret;
 
 out_unlock:
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 	goto out_free;
 }
 
@@ -1323,7 +1321,7 @@ static ssize_t sel_write_bool(struct file *filep, const char __user *buf,
 	if (IS_ERR(page))
 		return PTR_ERR(page);
 
-	mutex_lock(&fsi->mutex);
+	mutex_lock(&fsi->state->policy_mutex);
 
 	length = avc_has_perm(&selinux_state,
 			      current_sid(), SECINITSID_SECURITY,
@@ -1348,7 +1346,7 @@ static ssize_t sel_write_bool(struct file *filep, const char __user *buf,
 	length = count;
 
 out:
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 	kfree(page);
 	return length;
 }
@@ -1379,7 +1377,7 @@ static ssize_t sel_commit_bools_write(struct file *filep,
 	if (IS_ERR(page))
 		return PTR_ERR(page);
 
-	mutex_lock(&fsi->mutex);
+	mutex_lock(&fsi->state->policy_mutex);
 
 	length = avc_has_perm(&selinux_state,
 			      current_sid(), SECINITSID_SECURITY,
@@ -1401,7 +1399,7 @@ static ssize_t sel_commit_bools_write(struct file *filep,
 		length = count;
 
 out:
-	mutex_unlock(&fsi->mutex);
+	mutex_unlock(&fsi->state->policy_mutex);
 	kfree(page);
 	return length;
 }

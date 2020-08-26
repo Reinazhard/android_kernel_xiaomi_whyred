@@ -2169,13 +2169,8 @@ void selinux_policy_cancel(struct selinux_state *state,
 {
 	struct selinux_policy *oldpolicy;
 
-	/*
-	 * NOTE: We do not need to take the rcu read lock
-	 * around the code below because other policy-modifying
-	 * operations are already excluded by selinuxfs via
-	 * fsi->mutex.
-	 */
-	oldpolicy = rcu_dereference_check(state->policy, 1);
+	oldpolicy = rcu_dereference_protected(state->policy,
+					lockdep_is_held(&state->policy_mutex));
 
 	sidtab_cancel_convert(oldpolicy->sidtab);
 	selinux_policy_free(policy);
@@ -2198,13 +2193,8 @@ void selinux_policy_commit(struct selinux_state *state,
 	struct selinux_policy *oldpolicy;
 	u32 seqno;
 
-	/*
-	 * NOTE: We do not need to take the rcu read lock
-	 * around the code below because other policy-modifying
-	 * operations are already excluded by selinuxfs via
-	 * fsi->mutex.
-	 */
-	oldpolicy = rcu_dereference_check(state->policy, 1);
+	oldpolicy = rcu_dereference_protected(state->policy,
+					lockdep_is_held(&state->policy_mutex));
 
 	/* If switching between different policy types, log MLS status */
 	if (oldpolicy) {
@@ -2297,13 +2287,8 @@ int security_load_policy(struct selinux_state *state, void *data, size_t len,
 		return 0;
 	}
 
-	/*
-	 * NOTE: We do not need to take the rcu read lock
-	 * around the code below because other policy-modifying
-	 * operations are already excluded by selinuxfs via
-	 * fsi->mutex.
-	 */
-	oldpolicy = rcu_dereference_check(state->policy, 1);
+	oldpolicy = rcu_dereference_protected(state->policy,
+					lockdep_is_held(&state->policy_mutex));
 
 	/* Preserve active boolean values from the old policy */
 	rc = security_preserve_bools(oldpolicy, newpolicy);
@@ -3019,14 +3004,8 @@ int security_set_bools(struct selinux_state *state, u32 len, int *values)
 	if (!selinux_initialized(state))
 		return -EINVAL;
 
-	/*
-	 * NOTE: We do not need to take the rcu read lock
-	 * around the code below because other policy-modifying
-	 * operations are already excluded by selinuxfs via
-	 * fsi->mutex.
-	 */
-
-	oldpolicy = rcu_dereference_check(state->policy, 1);
+	oldpolicy = rcu_dereference_protected(state->policy,
+					lockdep_is_held(&state->policy_mutex));
 
 	/* Consistency check on number of booleans, should never fail */
 	if (WARN_ON(len != oldpolicy->policydb.p_bools.nprim))
