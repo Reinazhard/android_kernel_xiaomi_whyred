@@ -2334,22 +2334,6 @@ err_policy:
 	return rc;
 }
 
-size_t security_policydb_len(struct selinux_state *state)
-{
-	struct selinux_policy *policy;
-	size_t len;
-
-	if (!selinux_initialized(state))
-		return 0;
-
-	rcu_read_lock();
-	policy = rcu_dereference(state->policy);
-	len = policy->policydb.len;
-	rcu_read_unlock();
-
-	return len;
-}
-
 /**
  * security_port_sid - Obtain the SID for a port.
  * @protocol: protocol number
@@ -3909,11 +3893,12 @@ int security_read_policy(struct selinux_state *state,
 	int rc;
 	struct policy_file fp;
 
-	if (!selinux_initialized(state))
+	policy = rcu_dereference_protected(
+			state->policy, lockdep_is_held(&state->policy_mutex));
+	if (!policy)
 		return -EINVAL;
 
-	*len = security_policydb_len(state);
-
+	*len = policy->policydb.len;
 	*data = vmalloc_user(*len);
 	if (!*data)
 		return -ENOMEM;
@@ -3921,11 +3906,7 @@ int security_read_policy(struct selinux_state *state,
 	fp.data = *data;
 	fp.len = *len;
 
-	rcu_read_lock();
-	policy = rcu_dereference(state->policy);
 	rc = policydb_write(&policy->policydb, &fp);
-	rcu_read_unlock();
-
 	if (rc)
 		return rc;
 
