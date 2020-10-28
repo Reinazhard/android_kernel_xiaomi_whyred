@@ -112,5 +112,19 @@ obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 obj-$(CONFIG_TOUCHSCREEN_ST)		+= st/
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX) += synaptics_dsx/
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_TCM)	+= synaptics_tcm/
+ifdef CONFIG_XIAOMI_TULIP
+obj-$(CONFIG_TOUCHSCREEN_FOCAL_FT8719)	+= focal_ft8719/
+obj-$(CONFIG_TOUCHSCREEN_NVT_A)	+= nvt_touch_a/
+else
 obj-$(CONFIG_TOUCHSCREEN_FTS)	+= focaltech_touch/
 obj-$(CONFIG_TOUCHSCREEN_NT36XXX)	+= nt36xxx/
+endif
+
+# HMI_L6653_A01
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_E7S)	+= synaptics_dsx_e7s/
+obj-$(CONFIG_TOUCHSCREEN_NVT_E7S) 	+= nvt_touch_e7s/
+obj-$(CONFIG_XIAOMI_WHYRED)	+= lct_tp_fm_info.o
+obj-$(CONFIG_XIAOMI_WHYRED)	+= lct_ctp_selftest.o
+obj-$(CONFIG_XIAOMI_WHYRED)	+= lct_ctp_upgrade.o
+obj-$(CONFIG_XIAOMI_WHYRED)	+= lct_if_ctp_upgrade.o
+obj-$(CONFIG_XIAOMI_WHYRED)	+= lct_tp_gesture.o
