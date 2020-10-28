@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
  */
+/* Copyright (C) 2019 XiaoMi, Inc. */
 
 #define pr_fmt(fmt)	"FG: %s: " fmt, __func__
 
@@ -15,6 +16,7 @@
 #include <linux/iio/consumer.h>
 #include <linux/qpnp/qpnp-revid.h>
 #include <linux/qpnp/qpnp-misc.h>
+#include <linux/thermal.h>
 #include "fg-core.h"
 #include "fg-reg.h"
 
@@ -510,6 +512,13 @@ static DEVICE_ATTR_RW(sram_dump_period_ms);
 static int fg_restart_mp;
 static bool fg_sram_dump;
 
+int hwc_check_india;
+int hwc_check_global;
+extern bool is_poweroff_charge;
+#ifdef CONFIG_XIAOMI_TULIP
+extern int rradc_die;
+#endif
+
 /* All getters HERE */
 
 #define CC_SOC_30BIT	GENMASK(29, 0)
@@ -601,6 +610,9 @@ static int fg_get_battery_temp(struct fg_dev *fg, int *val)
 {
 	int rc = 0, temp;
 	u8 buf[2];
+#ifdef CONFIG_XIAOMI_TULIP
+	struct thermal_zone_device *quiet_them;
+#endif
 
 	rc = fg_read(fg, BATT_INFO_BATT_TEMP_LSB(fg), buf, 2);
 	if (rc < 0) {
@@ -615,6 +627,65 @@ static int fg_get_battery_temp(struct fg_dev *fg, int *val)
 
 	/* Value is in Kelvin; Convert it to deciDegC */
 	temp = (temp - 273) * 10;
+#ifdef CONFIG_XIAOMI_TULIP
+	if (temp < -40) {
+		switch (temp) {
+			case -50:
+				temp = -70;
+				break;
+			case -60:
+				temp = -80;
+				break;
+			case -70:
+				temp = -90;
+				break;
+			case -80:
+				temp = -100;
+				break;
+#else
+	if (temp < -80){
+		switch (temp){
+#endif
+		case -90:
+			temp = -110;
+			break;
+		case -100:
+			temp = -120;
+			break;
+		case -110:
+			temp = -130;
+			break;
+		case -120:
+			temp = -150;
+			break;
+		case -130:
+			temp = -170;
+			break;
+		case -140:
+			temp = -190;
+			break;
+		case -150:
+			temp = -200;
+			break;
+		case -160:
+			temp = -210;
+			break;
+		default:
+			temp -= 50;
+			break;
+		};
+	}
+
+#ifdef CONFIG_XIAOMI_TULIP
+	if (rradc_die) {
+		quiet_them = thermal_zone_get_zone_by_name("quiet_therm");
+		if (quiet_them)
+			rc = thermal_zone_get_temp(quiet_them, &temp);
+		temp = (temp - 3) * 10;
+		pr_err("LCT USE QUIET_THERM AS BATTERY TEMP \n");
+	}
+#endif
+
 	*val = temp;
 	return 0;
 }
@@ -803,6 +874,20 @@ out:
 	return rc;
 }
 
+static int __init hwc_setup(char *s)
+{
+	if (strcmp(s, "India") == 0)
+		hwc_check_india = 1;
+	else
+		hwc_check_india = 0;
+	if (strcmp(s, "Global") == 0)
+		hwc_check_global = 1;
+	else
+		hwc_check_global = 0;
+	return 1;
+}
+__setup("androidboot.hwc=", hwc_setup);
+
 static int fg_get_batt_profile(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
@@ -841,11 +926,25 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 		fg->bp.float_volt_uv = -EINVAL;
 	}
 
+	if (hwc_check_global) {
+		fg->bp.fastchg_curr_ma = 2300;
+	}
+#ifdef CONFIG_XIAOMI_TULIP
+	else
+		if (is_poweroff_charge) {
+			if (hwc_check_india)
+				fg->bp.fastchg_curr_ma = 2200;
+			else
+				fg->bp.fastchg_curr_ma = 2300;
+		}
+#endif
+	else {
 	rc = of_property_read_u32(profile_node, "qcom,fastchg-current-ma",
 			&fg->bp.fastchg_curr_ma);
 	if (rc < 0) {
 		pr_err("battery fastchg current unavailable, rc:%d\n", rc);
 		fg->bp.fastchg_curr_ma = -EINVAL;
+	}
 	}
 
 	rc = of_property_read_u32(profile_node, "qcom,fg-cc-cv-threshold-mv",
@@ -857,6 +956,12 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 
 	data = of_get_property(profile_node, "qcom,fg-profile-data", &len);
 	if (!data) {
+		pr_err("No profile data available\n");
+		return -ENODATA;
+	}
+
+	rc = of_property_read_u32(profile_node, "qcom,battery-full-design", &fg->battery_full_design);
+	if (rc < 0) {
 		pr_err("No profile data available\n");
 		return -ENODATA;
 	}
@@ -1855,9 +1960,17 @@ static int fg_adjust_recharge_voltage(struct fg_dev *fg)
 	recharge_volt_mv = chip->dt.recharge_volt_thr_mv;
 
 	/* Lower the recharge voltage in soft JEITA */
-	if (fg->health == POWER_SUPPLY_HEALTH_WARM ||
-			fg->health == POWER_SUPPLY_HEALTH_COOL)
-		recharge_volt_mv -= 200;
+#if defined(CONFIG_XIAOMI_WHYRED)
+	if (fg->health == POWER_SUPPLY_HEALTH_WARM)
+		recharge_volt_mv = 4050;
+	if (fg->health == POWER_SUPPLY_HEALTH_COOL)
+        recharge_volt_mv = 4282;
+#elif defined(CONFIG_XIAOMI_TULIP)
+	if (fg->health == POWER_SUPPLY_HEALTH_WARM)
+		recharge_volt_mv = 4050;
+	if (fg->health == POWER_SUPPLY_HEALTH_COOL)
+		recharge_volt_mv = 4250;
+#endif
 
 	rc = fg_set_recharge_voltage(fg, recharge_volt_mv);
 	if (rc < 0) {
@@ -3978,6 +4091,9 @@ static int fg_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
 	case POWER_SUPPLY_PROP_CC_STEP:
 	case POWER_SUPPLY_PROP_CC_STEP_SEL:
+#ifdef CONFIG_XIAOMI_TULIP
+	case POWER_SUPPLY_PROP_FG_RESET_CLOCK:
+#endif
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 	case POWER_SUPPLY_PROP_COLD_TEMP:
 	case POWER_SUPPLY_PROP_COOL_TEMP:
@@ -4416,6 +4532,12 @@ static int fg_hw_init(struct fg_dev *fg)
 			return rc;
 		}
 	}
+
+	buf[0] = 0x33;
+	buf[1] = 0x3;
+	rc = fg_sram_write(fg,4,0,buf,2,FG_IMA_DEFAULT);
+	if(rc < 0)
+		pr_err("Error in configuring Sram,rc = %d\n",rc);
 
 	return 0;
 }
@@ -5076,7 +5198,7 @@ static int fg_parse_dt(struct fg_gen3_chip *chip)
 	if (rc < 0)
 		chip->dt.sys_term_curr_ma = DEFAULT_SYS_TERM_CURR_MA;
 	else
-		chip->dt.sys_term_curr_ma = temp;
+		chip->dt.sys_term_curr_ma = -temp;
 
 	rc = of_property_read_u32(node, "qcom,fg-chg-term-base-current", &temp);
 	if (rc < 0)
