@@ -1,0 +1,34 @@
+/* Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+&vendor {
+	mtp_batterydata: qcom,battery-data {
+		qcom,batt-id-range-pct = <15>;
+		#include "fg-gen3-batterydata-l6650sun-4000mah.dtsi"
+		#include "fg-gen3-batterydata-l6650cos-4000mah.dtsi"
+		#include "fg-gen3-batterydata-l6650desay-4000mah.dtsi"
+		/delete-node/ qcom,itech_3000mah;
+		/delete-node/ qcom,ascent_3450mah;
+	};
+};
+
+&pm660_charger {
+	qcom,fv-max-uv  = <4400000>;
+	qcom,thermal-mitigation
+			= <2500000 2300000 2000000 1500000 1000000 400000 200000>;
+	qcom,thermal-mitigation-china
+			= <2500000 2300000 2000000 1500000 1000000 400000 200000>;
+};
+
+#include "../common/bouquet.dtsi"
+#include "whyred-camera.dtsi"
+#include "whyred-touch.dtsi"
