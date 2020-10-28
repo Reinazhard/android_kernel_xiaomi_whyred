@@ -1,0 +1,11 @@
+config XIAOMI_WHYRED
+	default n
+	bool "Custom for hardware E7S_pcb"
+	help
+	  Custom for E7S_pcb.
+
+config XIAOMI_TULIP
+	default n
+	bool "Custom for hardware E7T_pcb"
+	help
+	  Custom for E7T_pcb
