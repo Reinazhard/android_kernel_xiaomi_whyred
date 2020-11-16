@@ -9,3 +9,9 @@ config XIAOMI_TULIP
 	bool "Custom for hardware E7T_pcb"
 	help
 	  Custom for E7T_pcb
+
+config XIAOMI_NEW_CAMERA
+	default n
+	bool "Xiaomi new camera blobs"
+	help
+	  Support for new camera blobs
