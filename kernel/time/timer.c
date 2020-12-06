@@ -1486,6 +1486,7 @@ static void expire_timers(struct timer_base *base, struct hlist_head *head)
 			call_timer_fn(timer, fn);
 			raw_spin_lock_irq(&base->lock);
 			base->running_timer = NULL;
+			raw_spin_unlock_irq(&base->lock);
 			timer_sync_wait_running(base);
 		}
 	}
