@@ -39,6 +39,9 @@ Description:
 		lsm:  	are LSM specific
 		option:	appraise_type:= [imasig]
 			pcr:= decimal value
+			label:= [selinux]|[data_label]
+			data_label:= a unique string used for grouping and limiting critical data.
+			For example, "selinux" to measure critical data for SELinux.
 
 		default policy:
 			# PROC_SUPER_MAGIC
