@@ -2259,7 +2259,7 @@ int audit_log_task_context(struct audit_buffer *ab)
 	int error;
 	u32 sid;
 
-	security_task_getsecid(current, &sid);
+	security_task_getsecid_subj(current, &sid);
 	if (!sid)
 		return 0;
 
