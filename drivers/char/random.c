@@ -787,7 +787,7 @@ static void crng_initialize(struct crng_state *crng)
 	int		arch_init = 1;
 	unsigned long	rv;
 
-	memcpy(&crng->state[0], "expand 32-byte k", 16);
+	chacha_init_consts(crng->state);
 	if (crng == &primary_crng)
 		_extract_entropy(&input_pool, &crng->state[4],
 				 sizeof(__u32) * 12, 0);
