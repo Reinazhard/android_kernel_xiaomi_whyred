@@ -824,7 +824,7 @@ out:
 }
 
 /**
- * avc_update_node Update an AVC entry
+ * avc_update_node - Update an AVC entry
  * @event : Updating event
  * @perms : Permission mask bits
  * @ssid,@tsid,@tclass : identifier of an AVC entry
