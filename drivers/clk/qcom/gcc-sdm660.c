@@ -3387,7 +3387,7 @@ static int clk_debug_sdm660_probe(struct platform_device *pdev)
 
 		clk = devm_clk_register(&pdev->dev, &mux_list[i].mux->hw);
 		if (IS_ERR(clk)) {
-			dev_err(&pdev->dev, "Unable to register %s, err:(%d)\n",
+			dev_err(&pdev->dev, "Unable to register %s, err:(%ld)\n",
 				mux_list[i].mux->hw.init->name, PTR_ERR(clk));
 			return PTR_ERR(clk);
 		}
@@ -3396,7 +3396,7 @@ static int clk_debug_sdm660_probe(struct platform_device *pdev)
 	for (i = 0; i < ARRAY_SIZE(debugcc_sdm660_hws); i++) {
 		clk = devm_clk_register(&pdev->dev, debugcc_sdm660_hws[i]);
 		if (IS_ERR(clk)) {
-			dev_err(&pdev->dev, "Unable to register %s, err:(%d)\n",
+			dev_err(&pdev->dev, "Unable to register %s, err:(%ld)\n",
 			debugcc_sdm660_hws[i]->init->name, PTR_ERR(clk));
 			return PTR_ERR(clk);
 		}

@@ -1357,6 +1357,13 @@ static int sdm660_notifier_service_cb(struct notifier_block *this,
 			component = snd_soc_rtdcom_lookup(rtd, "tavil_codec");
 		else if (!strcmp(dev_name(codec_dai->dev), "tasha_codec"))
 			component = snd_soc_rtdcom_lookup(rtd, "tasha_codec");
+		else {
+			component = NULL;
+			dev_err(card->dev,
+				"%s: component is null!\n",
+				__func__);
+			goto done;
+		}
 		ret = msm_adsp_power_up_config(component, card->snd_card);
 		if (ret < 0) {
 			dev_err(card->dev,
@@ -1660,6 +1667,8 @@ int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		component = snd_soc_rtdcom_lookup(rtd, "tavil_codec");
 	else if (!strcmp(dev_name(codec_dai->dev), "tasha_codec"))
 		component = snd_soc_rtdcom_lookup(rtd, "tasha_codec");
+	else
+		component = NULL;
 	if (!component) {
 		pr_err("%s: component is NULL\n", __func__);
 		return -EINVAL;

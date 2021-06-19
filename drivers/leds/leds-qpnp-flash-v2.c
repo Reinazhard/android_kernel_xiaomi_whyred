@@ -1960,7 +1960,7 @@ static void qpnp_flashlight_led_brightness_set(struct led_classdev *led_cdev,
 					rc = qpnp_flash_led_switch_set(&led->snode[j], false);
 				if (rc < 0)
 					pr_err("Failed to set flash LED switch rc=%d\n", rc);
-					break;
+				break;
 				}
 			}
 
@@ -1980,7 +1980,7 @@ static void qpnp_flashlight_led_brightness_set(struct led_classdev *led_cdev,
 					rc = qpnp_flash_led_switch_set(&led->snode[j], value > 0);
 				if (rc < 0)
 					pr_err("Failed to set flash LED switch rc=%d\n", rc);
-					break;
+				break;
 				}
 			}
 	}

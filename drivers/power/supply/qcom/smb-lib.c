@@ -221,7 +221,7 @@ enum {
 	MAX_TYPES
 };
 
-static const struct apsd_result const smblib_apsd_results[] = {
+static const struct apsd_result smblib_apsd_results[] = {
 	[UNKNOWN] = {
 		.name	= "UNKNOWN",
 		.bit	= 0,
@@ -683,9 +683,10 @@ static const struct apsd_result *smblib_update_usb_type(struct smb_charger *chg)
 		 * detected as as SDP
 		 */
 		if (!(apsd_result->pst == POWER_SUPPLY_TYPE_USB_FLOAT &&
-			chg->real_charger_type == POWER_SUPPLY_TYPE_USB))
+			chg->real_charger_type == POWER_SUPPLY_TYPE_USB)) {
 			chg->real_charger_type = apsd_result->pst;
 			chg->usb_psy_desc.type = apsd_result->pst;
+		}
 	}
 
 	smblib_dbg(chg, PR_MISC, "APSD=%s PD=%d\n",

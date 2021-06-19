@@ -1938,7 +1938,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 						DMA_TO_DEVICE);
 					dma_buf_end_cpu_access(map->buf,
 						DMA_TO_DEVICE);
-					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x pv 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
+					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x pv 0x%llx, mend 0x%lu mstart 0x%lu, len %llu size %lu\n",
 					current->comm, __func__, sc,
 					rpra[i].buf.pv, ctx->overps[oix]->mend,
 					ctx->overps[oix]->mstart,
@@ -1974,7 +1974,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 					dma_buf_end_cpu_access_partial(
 						map->buf, DMA_TO_DEVICE, offset,
 						flush_len);
-					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x vm_start 0x%llx pv 0x%llx, offset 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
+					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x vm_start 0x%lu pv 0x%llx, offset 0x%lu, mend 0x%lu mstart 0x%lu, len %llu size %lu\n",
 					current->comm, __func__, sc,
 					vma->vm_start, rpra[i].buf.pv, offset,
 					ctx->overps[oix]->mend,
@@ -2095,7 +2095,7 @@ static void inv_args(struct smq_invoke_ctx *ctx)
 						DMA_TO_DEVICE);
 					dma_buf_end_cpu_access(map->buf,
 						DMA_FROM_DEVICE);
-					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x pv 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
+					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x pv 0x%llx, mend 0x%lu mstart 0x%lu, len %llu size %lu\n",
 					current->comm, __func__, sc,
 					rpra[over].buf.pv, ctx->overps[i]->mend,
 					ctx->overps[i]->mstart,
@@ -2132,7 +2132,7 @@ static void inv_args(struct smq_invoke_ctx *ctx)
 					dma_buf_end_cpu_access_partial(map->buf,
 						DMA_FROM_DEVICE, offset,
 						inv_len);
-					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x vm_start 0x%llx pv 0x%llx, offset 0x%llx, mend 0x%llx mstart 0x%llx, len %zu size %zu\n",
+					pr_debug("Debug: adsprpc: %s: %s: sc 0x%x vm_start 0x%lu pv 0x%llu, offset 0x%lu, mend 0x%lu mstart 0x%lu, len %llu size %lu\n",
 					current->comm, __func__, sc,
 					vma->vm_start, rpra[over].buf.pv,
 					offset, ctx->overps[i]->mend,
@@ -3495,7 +3495,7 @@ static int fastrpc_session_alloc_locked(struct fastrpc_channel_ctx *chan,
 		}
 		if (idx >= chan->sesscount) {
 			err = EUSERS;
-			pr_err("adsprpc: ERROR %d: %s: max concurrent sessions limit (%d) already reached on %s\n",
+			pr_err("adsprpc: ERROR %d: %s: max concurrent sessions limit (%llu) already reached on %s\n",
 				err, __func__, chan->sesscount, chan->subsys);
 			goto bail;
 		}
@@ -3816,13 +3816,13 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 			len += scnprintf(fileinfo + len,
 				DEBUGFS_SIZE - len, "%-7s", chan->subsys);
 			len += scnprintf(fileinfo + len,
-				DEBUGFS_SIZE - len, "|%-10u",
+				DEBUGFS_SIZE - len, "|%-10llu",
 				chan->sesscount);
 			len += scnprintf(fileinfo + len,
 				DEBUGFS_SIZE - len, "|%-14d",
 				chan->issubsystemup);
 			len += scnprintf(fileinfo + len,
-				DEBUGFS_SIZE - len, "|%-9u",
+				DEBUGFS_SIZE - len, "|%-9llu",
 				chan->ssrcount);
 			for (j = 0; j < chan->sesscount; j++) {
 				sess_used += chan->session[j].used;
@@ -3882,7 +3882,7 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s %7s %d\n", "sessionid", ":", fl->sessionid);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
-			"%s %8s %u\n", "ssrcount", ":", fl->ssrcount);
+			"%s %8s %llu\n", "ssrcount", ":", fl->ssrcount);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"%s %14s %d\n", "pd", ":", fl->pd);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
@@ -5325,7 +5325,7 @@ static int __init fastrpc_device_init(void)
 							gcinfo[i].subsys,
 							&me->channel[i].nb);
 		if (IS_ERR_OR_NULL(me->channel[i].handle))
-			pr_warn("adsprpc: %s: SSR notifier register failed for %s with err %d\n",
+			pr_warn("adsprpc: %s: SSR notifier register failed for %s with err %ld\n",
 				__func__, gcinfo[i].subsys,
 				PTR_ERR(me->channel[i].handle));
 		else
