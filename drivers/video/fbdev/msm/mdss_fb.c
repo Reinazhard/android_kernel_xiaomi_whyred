@@ -4904,7 +4904,7 @@ int mdss_fb_atomic_commit_ioctl(struct fb_info *info,
 	 */
 	struct pm_qos_request req = {
 		.type = PM_QOS_REQ_AFFINE_CORES,
-		.cpus_affine = ATOMIC_INIT(BIT(raw_smp_processor_id()))
+		.cpus_affine = BIT(raw_smp_processor_id())
 	};
 	int ret;
  
