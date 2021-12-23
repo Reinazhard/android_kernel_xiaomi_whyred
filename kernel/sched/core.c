@@ -1361,15 +1361,13 @@ static void __setscheduler_uclamp(struct task_struct *p,
 		 * RT by default have a 100% boost value that could be modified
 		 * at runtime.
 		 */
-		if (sched_feat(SUGOV_RT_MAX_FREQ) &&
-			       unlikely(rt_task(p) &&
-			       clamp_id == UCLAMP_MIN)) {
+		if (sched_feat(SUGOV_RT_MAX_FREQ) && unlikely(rt_task(p) &&
+			       clamp_id == UCLAMP_MIN))
 			value = sysctl_sched_uclamp_util_min_rt_default;
 		else
 			value = uclamp_none(clamp_id);
 
 		uclamp_se_set(uc_se, value, false);
-		}
 	}
 
 	if (likely(!(attr->sched_flags & SCHED_FLAG_UTIL_CLAMP)))
