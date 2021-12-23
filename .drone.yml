@@ -1,0 +1,31 @@
+---
+clone:
+  depth: 1
+kind: pipeline
+name: WHYRED
+steps:
+  - name: val
+    image: archlinux:base-devel
+    commands:
+      - curl -LO "https://repo.archlinuxcn.org/x86_64/glibc-linux4-2.33-4-x86_64.pkg.tar.zst" && bsdtar -C / -xvf "glibc-linux4-2.33-4-x86_64.pkg.tar.zst"
+      - pacman -Sy && pacman -S git bc inetutils python2 cpio zip jdk-openjdk aarch64-linux-gnu-gcc arm-none-eabi-gcc --noconfirm
+      - curl https://raw.githubusercontent.com/Reinazhard/myscripts/master/gcc-4.19.sh | bash
+    environment:
+      TELEGRAM_TOKEN:
+        from_secret: BOT_API_KEY
+
+---
+clone:
+  depth: 1
+kind: pipeline
+name: TULIP
+steps:
+  - name: val
+    image: archlinux:base-devel
+    commands:
+      - curl -LO "https://repo.archlinuxcn.org/x86_64/glibc-linux4-2.33-4-x86_64.pkg.tar.zst" && bsdtar -C / -xvf "glibc-linux4-2.33-4-x86_64.pkg.tar.zst"
+      - pacman -Sy && pacman -S git bc inetutils python2 cpio zip jdk-openjdk aarch64-linux-gnu-gcc arm-none-eabi-gcc --noconfirm
+      - curl https://raw.githubusercontent.com/Reinazhard/myscripts/master/tulip-4.19.sh | bash
+    environment: 
+      TELEGRAM_TOKEN: 
+        from_secret: BOT_API_KEY
