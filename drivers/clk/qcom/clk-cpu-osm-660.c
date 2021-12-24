@@ -940,12 +940,13 @@ static int clk_osm_get_lut(struct platform_device *pdev,
 		c->osm_table[j].spare_data = array[i + SPARE_DATA];
 		/* Voltage corners are 0 based in the OSM LUT */
 		c->osm_table[j].virtual_corner = array[i + VIRTUAL_CORNER] - 1;
-		pr_debug("index=%d freq=%ld virtual_corner=%d freq_data=0x%x override_data=0x%x spare_data=0x%x\n",
+		pr_debug("index=%d freq=%ld virtual_corner=%d freq_data=0x%x override_data=0x%x spare_data=0x%x open_loop_voltage=0x%x\n",
 			 j, c->osm_table[j].frequency,
 			 c->osm_table[j].virtual_corner,
 			 c->osm_table[j].freq_data,
 			 c->osm_table[j].override_data,
-			 c->osm_table[j].spare_data);
+			 c->osm_table[j].spare_data
+			 c->osm_table[i].open_loop_volt);
 
 		data = (array[i + FREQ_DATA] & GENMASK(18, 16)) >> 16;
 		if (!last_entry && data == MAX_CORE_COUNT) {
