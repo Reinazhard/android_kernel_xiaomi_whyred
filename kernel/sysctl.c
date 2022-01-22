@@ -1102,11 +1102,6 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= sysctl_max_threads,
 	},
 	{
-		.procname	= "random",
-		.mode		= 0555,
-		.child		= random_table,
-	},
-	{
 		.procname	= "usermodehelper",
 		.mode		= 0555,
 		.child		= usermodehelper_table,
