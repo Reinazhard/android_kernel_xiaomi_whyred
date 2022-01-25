@@ -117,7 +117,7 @@ static struct sel_netnode *sel_netnode_find(const void *addr, u16 family)
 
 	switch (family) {
 	case PF_INET:
-		idx = sel_netnode_hashfn_ipv4(*(__be32 *)addr);
+		idx = sel_netnode_hashfn_ipv4(*(const __be32 *)addr);
 		break;
 	case PF_INET6:
 		idx = sel_netnode_hashfn_ipv6(addr);
@@ -131,7 +131,7 @@ static struct sel_netnode *sel_netnode_find(const void *addr, u16 family)
 		if (node->nsec.family == family)
 			switch (family) {
 			case PF_INET:
-				if (node->nsec.addr.ipv4 == *(__be32 *)addr)
+				if (node->nsec.addr.ipv4 == *(const __be32 *)addr)
 					return node;
 				break;
 			case PF_INET6:
