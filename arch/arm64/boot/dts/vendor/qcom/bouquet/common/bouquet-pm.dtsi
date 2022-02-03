@@ -39,7 +39,6 @@
 
 &pm660_haptics {
 	qcom,actuator-type = "erm";
-	qcom,vmax-mv = <3000>;
 };
 
 &usb3 {
