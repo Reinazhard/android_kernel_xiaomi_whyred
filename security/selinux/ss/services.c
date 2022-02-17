@@ -531,8 +531,6 @@ out:
 	/* release scontext/tcontext */
 	kfree(tcontext_name);
 	kfree(scontext_name);
-
-	return;
 }
 
 /*
