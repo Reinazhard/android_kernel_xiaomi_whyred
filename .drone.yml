@@ -1,0 +1,29 @@
+---
+clone:
+  depth: 1
+kind: pipeline
+name: WHYRED
+steps:
+  - name: val
+    image: ubuntu:latest
+    commands:
+      - apt-get update && apt-get install -y bison build-essential bc bison curl libssl-dev git zip python python3 flex cpio libncurses5-dev wget
+      - curl https://raw.githubusercontent.com/Reinazhard/myscripts/master/clang-4.19.sh | bash
+    environment:
+      TELEGRAM_TOKEN:
+        from_secret: BOT_API_KEY
+
+---
+clone:
+  depth: 1
+kind: pipeline
+name: TULIP
+steps:
+  - name: val
+    image: ubuntu:latest
+    commands:
+      - apt-get update && apt-get install -y bison build-essential bc bison curl libssl-dev git zip python python3 flex cpio libncurses5-dev wget
+      - curl https://raw.githubusercontent.com/Reinazhard/myscripts/master/tulip-4.19-clang.sh | bash
+    environment: 
+      TELEGRAM_TOKEN: 
+        from_secret: BOT_API_KEY
