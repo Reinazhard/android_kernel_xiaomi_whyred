@@ -201,6 +201,7 @@ void of_populate_phandle_cache(void)
 	for_each_of_allnodes(np)
 		if (np->phandle && np->phandle != OF_PHANDLE_ILLEGAL)
 			phandles++;
+	raw_spin_unlock_irqrestore(&devtree_lock, flags);
 
 	if (!phandles)
 		goto out;
@@ -210,18 +211,15 @@ void of_populate_phandle_cache(void)
 	phandle_cache_mask = cache_entries - 1;
 
 	phandle_cache = kcalloc(cache_entries, sizeof(*phandle_cache),
-				GFP_ATOMIC);
-	raw_spin_lock_irqsave(&devtree_lock, flags);
+				GFP_KERNEL);
 	if (!phandle_cache)
-		goto out;
+		return;
 
+	raw_spin_lock_irqsave(&devtree_lock, flags);
 	for_each_of_allnodes(np)
 		if (np->phandle && np->phandle != OF_PHANDLE_ILLEGAL) {
 			of_node_get(np);
 			phandle_cache[np->phandle & phandle_cache_mask] = np;
-		}
-
-out:
 	raw_spin_unlock_irqrestore(&devtree_lock, flags);
 	kfree(shadow);
 }
