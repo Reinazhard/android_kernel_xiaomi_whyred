@@ -2051,8 +2051,9 @@ int qcom_batt_init(struct charger_param *chg_param)
 	if (!chip)
 		return -ENOMEM;
 
+#ifdef CONFIG_DEBUG_FS
 	qcom_batt_create_debugfs(chip);
-
+#endif
 	chip->slave_pct = 50;
 	chip->chg_param = chg_param;
 	pl_config_init(chip, chg_param->smb_version);
