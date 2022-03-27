@@ -902,7 +902,7 @@ static int blkcg_print_stat(struct seq_file *sf, void *v)
 		int i;
 		bool has_stats = false;
 
-		spin_lock_irq(blkg->q->queue_lock);
+		spin_lock_irq(&blkg->q->queue_lock);
 
 		if (!blkg->online)
 			goto skip;
@@ -972,7 +972,7 @@ next:
 			}
 		}
 	skip:
-		spin_unlock_irq(blkg->q->queue_lock);
+		spin_unlock_irq(&blkg->q->queue_lock);
 	}
 
 	rcu_read_unlock();
