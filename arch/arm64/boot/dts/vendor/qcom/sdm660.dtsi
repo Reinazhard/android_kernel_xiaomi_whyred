@@ -31,7 +31,7 @@
 
 	chosen {
 		stdout-path = "serial0";
-		bootargs = "rcupdate.rcu_expedited=1 rcu_nocbs=0-7 pstore.compress=none cgroup_disable=pressure";
+		bootargs = "rcupdate.rcu_expedited=1 rcu_nocbs=0-7 pstore.compress=none cgroup_disable=pressure,memory";
 	};
 
 	psci {
