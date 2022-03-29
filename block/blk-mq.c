@@ -3112,7 +3112,7 @@ void blk_mq_exit_queue(struct request_queue *q)
 /* Basically redo blk_mq_init_queue with queue frozen */
 static void blk_mq_queue_reinit(struct request_queue *q)
 {
-	WARN_ON_ONCE(!atomic_read(&q->mq_freeze_depth));
+	WARN_ON_ONCE(q->mq_freeze_depth);
 
 	blk_mq_debugfs_unregister_hctxs(q);
 	blk_mq_sysfs_unregister(q);
