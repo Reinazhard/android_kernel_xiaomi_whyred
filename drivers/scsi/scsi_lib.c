@@ -1027,7 +1027,7 @@ int scsi_init_io(struct scsi_cmnd *cmd)
 	 * If sg table allocation fails, requeue request later.
 	 */
 	if (unlikely(sg_alloc_table_chained(&cmd->sdb.table, nr_segs,
-			cmd->sdb.table.sgl, SCSI_INLINE_SG_CNT)))
+			cmd->sdb.table.sgl)))
 		return BLK_STS_RESOURCE;
 
 	/*
