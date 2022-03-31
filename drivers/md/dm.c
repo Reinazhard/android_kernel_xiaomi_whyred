@@ -2410,7 +2410,6 @@ int dm_setup_md_queue(struct mapped_device *md, struct dm_table *t)
 		break;
 	case DM_TYPE_NVME_BIO_BASED:
 		dm_init_normal_md_queue(md);
-		blk_queue_make_request(md->queue, dm_make_request_nvme);
 		break;
 	case DM_TYPE_NONE:
 		WARN_ON_ONCE(true);
