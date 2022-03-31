@@ -30,7 +30,6 @@ struct blk_flush_queue {
 	 * at the same time
 	 */
 	struct request		*orig_rq;
-	struct lock_class_key	key;
 	spinlock_t		mq_flush_lock;
 };
 
