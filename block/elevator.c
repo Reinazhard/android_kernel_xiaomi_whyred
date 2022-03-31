@@ -644,10 +644,11 @@ static inline bool elv_support_iosched(struct request_queue *q)
  */
 static struct elevator_type *elevator_get_default(struct request_queue *q)
 {
-	if (q->nr_hw_queues != 1)
-		return NULL;
 	if (IS_ENABLED(CONFIG_IOSCHED_BFQ))
 		return elevator_get(q, "bfq", false);
+
+	if (q->nr_hw_queues != 1)
+		return NULL;
 
 	return elevator_get(q, "mq-deadline", false);
 }
