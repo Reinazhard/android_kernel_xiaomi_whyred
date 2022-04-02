@@ -1460,13 +1460,13 @@
  *
  */
 union security_list_options {
-	int (*binder_set_context_mgr)(struct task_struct *mgr);
-	int (*binder_transaction)(struct task_struct *from,
-					struct task_struct *to);
-	int (*binder_transfer_binder)(struct task_struct *from,
-					struct task_struct *to);
-	int (*binder_transfer_file)(struct task_struct *from,
-					struct task_struct *to,
+	int (*binder_set_context_mgr)(const struct cred *mgr);
+	int (*binder_transaction)(const struct cred *from,
+					const struct cred *to);
+	int (*binder_transfer_binder)(const struct cred *from,
+					const struct cred *to);
+	int (*binder_transfer_file)(const struct cred *from,
+					const struct cred *to,
 					struct file *file);
 
 	int (*ptrace_access_check)(struct task_struct *child,
@@ -1499,6 +1499,7 @@ union security_list_options {
 	void (*sb_free_security)(struct super_block *sb);
 	void (*sb_free_mnt_opts)(void *mnt_opts);
 	int (*sb_eat_lsm_opts)(char *orig, void **mnt_opts);
+	int (*sb_mnt_opts_compat)(struct super_block *sb, void *mnt_opts);
 	int (*sb_remount)(struct super_block *sb, void *mnt_opts);
 	int (*sb_kern_mount)(struct super_block *sb);
 	int (*sb_show_options)(struct seq_file *m, struct super_block *sb);
@@ -1517,9 +1518,10 @@ union security_list_options {
 					unsigned long *set_kern_flags);
 	int (*sb_add_mnt_opt)(const char *option, const char *val, int len,
 			      void **mnt_opts);
-	int (*dentry_init_security)(struct dentry *dentry, int mode,
-					const struct qstr *name, void **ctx,
-					u32 *ctxlen);
+	int (*move_mount)(const struct path *from_path, const struct path *to_path);
+	int (*dentry_init_security)(struct dentry *dentry,
+	 int mode, const struct qstr *name, const char **xattr_name,
+	 void **ctx, u32 *ctxlen);
 	int (*dentry_create_files_as)(struct dentry *dentry, int mode,
 					struct qstr *name,
 					const struct cred *old,
@@ -1554,6 +1556,8 @@ union security_list_options {
 					size_t *len);
 	int (*inode_create)(struct inode *dir, struct dentry *dentry,
 				umode_t mode);
+	int (*inode_init_security_anon)(struct inode *inode,
+	 const struct qstr *name, const struct inode *context_inode);
 	int (*inode_link)(struct dentry *old_dentry, struct inode *dir,
 				struct dentry *new_dentry);
 	int (*inode_unlink)(struct inode *dir, struct dentry *dentry);
@@ -1636,7 +1640,9 @@ union security_list_options {
 	int (*task_setpgid)(struct task_struct *p, pid_t pgid);
 	int (*task_getpgid)(struct task_struct *p);
 	int (*task_getsid)(struct task_struct *p);
+	void (*current_getsecid_subj)(u32 *secid);
 	void (*task_getsecid)(struct task_struct *p, u32 *secid);
+	void (*task_getsecid_obj)(struct task_struct *p, u32 *secid);
 	int (*task_setnice)(struct task_struct *p, int nice);
 	int (*task_setioprio)(struct task_struct *p, int ioprio);
 	int (*task_getioprio)(struct task_struct *p);
@@ -1851,6 +1857,7 @@ struct security_hook_heads {
 	struct hlist_head sb_free_security;
 	struct hlist_head sb_free_mnt_opts;
 	struct hlist_head sb_eat_lsm_opts;
+	struct hlist_head sb_mnt_opts_compat;
 	struct hlist_head sb_remount;
 	struct hlist_head sb_kern_mount;
 	struct hlist_head sb_show_options;
@@ -1861,6 +1868,7 @@ struct security_hook_heads {
 	struct hlist_head sb_set_mnt_opts;
 	struct hlist_head sb_clone_mnt_opts;
 	struct hlist_head sb_add_mnt_opt;
+	struct hlist_head move_mount;
 	struct hlist_head dentry_init_security;
 	struct hlist_head dentry_create_files_as;
 #ifdef CONFIG_SECURITY_PATH
@@ -1880,6 +1888,7 @@ struct security_hook_heads {
 	struct hlist_head inode_free_security;
 	struct hlist_head inode_init_security;
 	struct hlist_head inode_create;
+	struct hlist_head inode_init_security_anon;
 	struct hlist_head inode_link;
 	struct hlist_head inode_unlink;
 	struct hlist_head inode_symlink;
@@ -1937,6 +1946,8 @@ struct security_hook_heads {
 	struct hlist_head task_getpgid;
 	struct hlist_head task_getsid;
 	struct hlist_head task_getsecid;
+	struct hlist_head current_getsecid_subj;
+	struct hlist_head task_getsecid_obj;
 	struct hlist_head task_setnice;
 	struct hlist_head task_setioprio;
 	struct hlist_head task_getioprio;

@@ -49,5 +49,3 @@ static inline int sel_ib_pkey_sid(u64 subnet_prefix, u16 pkey, u32 *sid)
 	return 0;
 }
 #endif
-
-#endif
