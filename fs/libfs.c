@@ -1285,8 +1285,8 @@ EXPORT_SYMBOL(needs_casefold);
  *
  * Return: 0 if names match, 1 if mismatch, or -ERRNO
  */
-int generic_ci_d_compare(const struct dentry *dentry, unsigned int len,
-			  const char *str, const struct qstr *name)
+static int generic_ci_d_compare(const struct dentry *dentry, unsigned int len,
+				const char *str, const struct qstr *name)
 {
 	const struct dentry *parent = READ_ONCE(dentry->d_parent);
 	const struct inode *inode = READ_ONCE(parent->d_inode);
@@ -1325,7 +1325,6 @@ fallback:
 		return 1;
 	return !!memcmp(str, name->name, len);
 }
-EXPORT_SYMBOL(generic_ci_d_compare);
 
 /**
  * generic_ci_d_hash - generic d_hash implementation for casefolding filesystems
@@ -1334,7 +1333,7 @@ EXPORT_SYMBOL(generic_ci_d_compare);
  *
  * Return: 0 if hash was successful or unchanged, and -EINVAL on error
  */
-int generic_ci_d_hash(const struct dentry *dentry, struct qstr *str)
+static int generic_ci_d_hash(const struct dentry *dentry, struct qstr *str)
 {
 	const struct inode *inode = READ_ONCE(dentry->d_inode);
 	struct super_block *sb = dentry->d_sb;
@@ -1389,7 +1388,7 @@ static const struct dentry_operations generic_encrypted_ci_dentry_ops = {
 void generic_set_encrypted_ci_d_ops(struct inode *dir, struct dentry *dentry)
 {
 #ifdef CONFIG_FS_ENCRYPTION
-	if (dentry->d_flags & DCACHE_ENCRYPTED_NAME) {
+	if (dentry->d_flags & DCACHE_NOKEY_NAME) {
 #ifdef CONFIG_UNICODE
 		if (dir->i_sb->s_encoding) {
 			d_set_d_op(dentry, &generic_encrypted_ci_dentry_ops);
