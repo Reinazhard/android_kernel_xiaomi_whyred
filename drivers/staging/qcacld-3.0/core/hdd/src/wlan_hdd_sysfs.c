@@ -607,14 +607,18 @@ static void hdd_sysfs_destroy_bcn_reception_interface(struct hdd_adapter
 
 void hdd_sysfs_create_adapter_root_obj(struct hdd_adapter *adapter)
 {
+#ifdef WLAN_FEATURE_BEACON_RECEPTION_STATS
 	hdd_sysfs_create_bcn_reception_interface(adapter);
+#endif
 	hdd_sysfs_dl_modes_create(adapter);
 }
 
 void hdd_sysfs_destroy_adapter_root_obj(struct hdd_adapter *adapter)
 {
 	hdd_sysfs_dl_modes_destroy(adapter);
+#ifdef WLAN_FEATURE_BEACON_RECEPTION_STATS
 	hdd_sysfs_destroy_bcn_reception_interface(adapter);
+#endif
 }
 
 void hdd_create_sysfs_files(struct hdd_context *hdd_ctx)
