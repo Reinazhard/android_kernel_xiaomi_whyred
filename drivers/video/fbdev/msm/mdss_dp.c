@@ -43,6 +43,10 @@ struct mdss_dp_attention_node {
 	struct list_head list;
 };
 
+#if defined(CONFIG_XIAOMI_WHYRED) || defined(CONFIG_XIAOMI_TULIP)
+#define TARGET_MICRO_USB 1
+#endif
+
 #define DEFAULT_VIDEO_RESOLUTION HDMI_VFRMT_640x480p60_4_3
 
 static int mdss_dp_host_init(struct mdss_panel_data *pdata);
@@ -4456,7 +4460,7 @@ exit:
 	pr_debug("exit\n");
 }
 
-static int mdss_dp_usbpd_setup(struct mdss_dp_drv_pdata *dp_drv)
+static int __maybe_unused mdss_dp_usbpd_setup(struct mdss_dp_drv_pdata *dp_drv)
 {
 	int ret = 0;
 	const char *pd_phandle = "qcom,dp-usbpd-detection";
@@ -4538,11 +4542,13 @@ static int mdss_dp_probe(struct platform_device *pdev)
 	init_completion(&dp_drv->video_comp);
 	init_completion(&dp_drv->audio_comp);
 
+#ifndef TARGET_MICRO_USB
 	if (mdss_dp_usbpd_setup(dp_drv)) {
 		pr_err("Error usbpd setup!\n");
 		dp_drv = NULL;
 		return -EPROBE_DEFER;
 	}
+#endif
 
 	ret = mdss_retrieve_dp_ctrl_resources(pdev, dp_drv);
 	if (ret)
