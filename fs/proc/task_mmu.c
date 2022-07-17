@@ -1820,11 +1820,6 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 
 	mm = get_task_mm(task);
 	if (mm) {
-		struct mm_walk reclaim_walk = {
-			.pmd_entry = reclaim_pte_range,
-			.mm = mm,
-		};
-
 		down_read(&mm->mmap_sem);
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
 			if (is_vm_hugetlb_page(vma))
@@ -1839,6 +1834,10 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 				continue;
 
 			if (vma_is_anonymous(vma)) {
+				const struct mm_walk_ops reclaim_walk_ops = {
+					.pmd_entry = reclaim_pte_range,
+				};
+
 				if (get_nr_swap_pages() <= 0 ||
 					get_mm_counter(mm, MM_ANONPAGES) == 0) {
 					if (type == RECLAIM_ALL)
@@ -1846,15 +1845,21 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 					else
 						break;
 				}
-				reclaim_walk.pmd_entry = reclaim_pte_range;
-			} else {
-				reclaim_walk.pmd_entry = deactivate_pte_range;
-			}
 
-			err = walk_page_range(vma->vm_start, vma->vm_end,
-					&reclaim_walk);
-			if (err)
-				break;
+				err = walk_page_range(mm, vma->vm_start, vma->vm_end,
+						&reclaim_walk_ops, vma);
+				if (err)
+					break;
+			} else {
+				const struct mm_walk_ops reclaim_walk_ops = {
+					.pmd_entry = deactivate_pte_range,
+				};
+
+				err = walk_page_range(mm, vma->vm_start, vma->vm_end,
+						&reclaim_walk_ops, vma);
+				if (err)
+					break;
+			}
 		}
 		flush_tlb_mm(mm);
 		up_read(&mm->mmap_sem);
