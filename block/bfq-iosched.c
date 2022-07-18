@@ -2586,12 +2586,8 @@ bfq_setup_cooperator(struct bfq_data *bfqd, struct bfq_queue *bfqq,
 	struct bfq_queue *in_service_bfqq, *new_bfqq;
 
 	/* if a merge has already been setup, then proceed with that first */
-	new_bfqq = bfqq->new_bfqq;
-	if (new_bfqq) {
-		while (new_bfqq->new_bfqq)
-			new_bfqq = new_bfqq->new_bfqq;
-		return new_bfqq;
-	}
+	if (bfqq->new_bfqq)
+		return bfqq->new_bfqq;
 
 	/*
 	 * Do not perform queue merging if the device is non
@@ -5995,7 +5991,7 @@ bfq_split_bfqq(struct bfq_io_cq *bic, struct bfq_queue *bfqq)
 {
 	bfq_log_bfqq(bfqq->bfqd, bfqq, "splitting queue");
 
-	if (bfqq_process_refs(bfqq) == 1 && !bfqq->new_bfqq) {
+	if (bfqq_process_refs(bfqq) == 1) {
 		bfqq->pid = current->pid;
 		bfq_clear_bfqq_coop(bfqq);
 		bfq_clear_bfqq_split_coop(bfqq);
@@ -6180,8 +6176,7 @@ static struct bfq_queue *bfq_init_rq(struct request *rq)
 	 * addition, if the queue has also just been split, we have to
 	 * resume its state.
 	 */
-	if (likely(bfqq != &bfqd->oom_bfqq) && !bfqq->new_bfqq &&
-	    bfqq_process_refs(bfqq) == 1) {
+	if (likely(bfqq != &bfqd->oom_bfqq) && bfqq_process_refs(bfqq) == 1) {
 		bfqq->bic = bic;
 		if (split) {
 			/*
@@ -6568,18 +6563,6 @@ out_free:
 	return -ENOMEM;
 }
 
-static void bfq_registered_queue(struct request_queue *q)
-{
-	struct elevator_queue *e = q->elevator;
-	struct bfq_data *bfqd = e->elevator_data;
-
-	/*
-	 * Default to IOPS mode with no idling for SSDs
-	 */
-	if (blk_queue_nonrot(q))
-		bfqd->bfq_slice_idle = 0;
-}
-
 static void bfq_slab_kill(void)
 {
 	kmem_cache_destroy(bfq_pool);
@@ -6827,7 +6810,6 @@ static struct elevator_type iosched_bfq_mq = {
 		.init_hctx		= bfq_init_hctx,
 		.init_sched		= bfq_init_queue,
 		.exit_sched		= bfq_exit_queue,
-		.elevator_registered_fn = bfq_registered_queue,
 	},
 
 	.uses_mq =		true,
