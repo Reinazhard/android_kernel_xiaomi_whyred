@@ -4,6 +4,7 @@
 
 #include <linux/dma-mapping.h>
 #include <linux/mem_encrypt.h>
+#include <linux/slab.h>
 
 #ifdef CONFIG_ARCH_HAS_PHYS_TO_DMA
 #include <asm/dma-direct.h>
@@ -66,4 +67,30 @@ int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
 		enum dma_data_direction dir, unsigned long attrs);
 int dma_direct_supported(struct device *dev, u64 mask);
 int dma_direct_mapping_error(struct device *dev, dma_addr_t dma_addr);
+
+/*
+ * Check whether the given size, assuming it is for a kmalloc()'ed object, is
+ * safe for non-coherent DMA or needs bouncing.
+ */
+static inline bool dma_kmalloc_needs_bounce(struct device *dev, size_t size,
+					    enum dma_data_direction dir)
+{
+	/*
+	 * No need for bouncing if coherent DMA or the direction is
+	 * DMA_TO_DEVICE.
+	 */
+	if (!IS_ENABLED(CONFIG_DMA_BOUNCE_UNALIGNED_KMALLOC) ||
+	    dir == DMA_TO_DEVICE || is_device_dma_coherent(dev))
+		return false;
+
+	/*
+	 * Larger kmalloc() sizes are guaranteed to be aligned to
+	 * ARCH_DMA_MINALIGN.
+	 */
+	if (size >= 2 * ARCH_DMA_MINALIGN ||
+	    IS_ALIGNED(kmalloc_size_roundup(size), dma_get_cache_alignment()))
+		return false;
+
+	return true;
+}
 #endif /* _LINUX_DMA_DIRECT_H */
