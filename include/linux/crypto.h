@@ -147,7 +147,7 @@
  * as arm where pointers are 32-bit aligned but there are data types such as
  * u64 which require 64-bit alignment.
  */
-#define CRYPTO_MINALIGN ARCH_KMALLOC_MINALIGN
+#define CRYPTO_MINALIGN ARCH_DMA_MINALIGN
 
 #define CRYPTO_MINALIGN_ATTR __attribute__ ((__aligned__(CRYPTO_MINALIGN)))
 
