@@ -143,7 +143,8 @@ dma_addr_t dma_direct_map_page(struct device *dev, struct page *page,
 {
 	dma_addr_t dma_addr = phys_to_dma(dev, page_to_phys(page)) + offset;
 
-	if (!check_addr(dev, dma_addr, size, __func__))
+	if (!check_addr(dev, dma_addr, size, __func__) ||
+	    dma_kmalloc_needs_bounce(dev, size, dir)) {
 		return DIRECT_MAPPING_ERROR;
 	return dma_addr;
 }
