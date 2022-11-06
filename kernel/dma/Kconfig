@@ -32,6 +32,15 @@ config ARCH_HAS_DMA_CACHE_LINE_SIZE
 	  Select if the architecture has non-coherent DMA and
 	  cache_line_size() is a safe alignment for DMA buffers.
 
+config ARCH_WANT_KMALLOC_DMA_BOUNCE
+	bool
+
+config DMA_BOUNCE_UNALIGNED_KMALLOC
+	def_bool y
+	depends on ARCH_WANT_KMALLOC_DMA_BOUNCE
+	depends on SWIOTLB && !SLOB
+
+
 config DMA_DIRECT_OPS
 	bool
 	depends on HAS_DMA
