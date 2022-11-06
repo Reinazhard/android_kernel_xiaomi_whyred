@@ -813,7 +813,7 @@ static inline void *dma_zalloc_coherent(struct device *dev, size_t size,
 
 static inline int dma_get_cache_alignment(void)
 {
-#ifdef ARCH_DMA_MINALIGN
+#ifdef ARCH_HAS_DMA_MINALIGN
 	return ARCH_DMA_MINALIGN;
 #endif
 	return 1;
