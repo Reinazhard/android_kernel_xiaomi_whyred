@@ -1156,10 +1156,31 @@ kmalloc_cache_name(const char *prefix, unsigned int size)
 	return kasprintf(GFP_NOWAIT, "%s-%u%c", prefix, size, units[idx]);
 }
 
-static void __init
+static unsigned int __kmalloc_minalign(void)
+{
+	int cache_align = dma_get_cache_alignment();
+
+	/*
+	 * If CONFIG_DMA_BOUNCE_UNALIGNED_KMALLOC is not enabled,
+	 * ARCH_KMALLOC_MINALIGN matches ARCH_DMA_MINALIGN.
+	 */
+	if (!IS_ENABLED(CONFIG_DMA_BOUNCE_UNALIGNED_KMALLOC) ||
+	    cache_align < ARCH_KMALLOC_MINALIGN || io_tlb_default_mem.nslabs)
+		return ARCH_KMALLOC_MINALIGN;
+
+	pr_info_once("No default DMA bounce buffer, increasing the kmalloc() minimum alignment to %d\n",
+		     cache_align);
+	return cache_align;
+}
+
+void __init
 new_kmalloc_cache(int idx, int type, slab_flags_t flags)
 {
 	const char *name;
+	unsigned int minalign = __kmalloc_minalign();
+	unsigned int aligned_size = kmalloc_info[idx].size;
+	int aligned_idx = idx;
+
 
 	if (type == KMALLOC_RECLAIM) {
 		flags |= SLAB_RECLAIM_ACCOUNT;
@@ -1170,9 +1191,17 @@ new_kmalloc_cache(int idx, int type, slab_flags_t flags)
 		name = kmalloc_info[idx].name;
 	}
 
-	kmalloc_caches[type][idx] = create_kmalloc_cache(name,
-					kmalloc_info[idx].size, flags, 0,
-					kmalloc_info[idx].size);
+	if (minalign > ARCH_KMALLOC_MINALIGN) {
+		aligned_size = ALIGN(aligned_size, minalign);
+		aligned_idx = __kmalloc_index(aligned_size, false);
+	}
+
+	if (!kmalloc_caches[type][aligned_idx])
+		kmalloc_caches[type][aligned_idx] = create_kmalloc_cache(
+					kmalloc_info[aligned_idx].name[type],
+					aligned_size, flags, 0, aligned_size);
+	if (idx != aligned_idx)
+		kmalloc_caches[type][idx] = kmalloc_caches[type][aligned_idx];
 }
 
 /*
