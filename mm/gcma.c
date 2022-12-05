@@ -596,6 +596,7 @@ void gcma_cc_store_page(int hash_id, struct cleancache_filekey key,
 	struct page *g_page;
 	void *src, *dst;
 	bool is_new = false;
+	bool workingset = PageWorkingset(page);
 
 	/*
 	 * This cleancache function is called under irq disabled so every
@@ -610,6 +611,8 @@ find_inode:
 
 	inode = find_and_get_gcma_inode(gcma_fs, &key);
 	if (!inode) {
+		if (!workingset)
+			return;
 		inode = add_gcma_inode(gcma_fs, &key);
 		if (!IS_ERR(inode))
 			goto load_page;
@@ -622,10 +625,20 @@ find_inode:
 	}
 
 load_page:
+	VM_BUG_ON(!inode);
+
 	xa_lock(&inode->pages);
 	g_page = xa_load(&inode->pages, offset);
-	if (g_page)
+	if (g_page) {
+		if (!workingset) {
+			gcma_erase_page(inode, offset, g_page);
+			goto out_unlock;
+		}
 		goto copy;
+	}
+
+	if (!workingset)
+		goto out_unlock;
 
 	g_page = gcma_alloc_page();
 	if (!g_page) {
@@ -637,8 +650,8 @@ load_page:
 		gcma_put_page(g_page);
 		goto out_unlock;
 	}
-	gcma_put_page(g_page);
 
+	gcma_put_page(g_page);
 	is_new = true;
 copy:
 	src = kmap_atomic(page);
