@@ -43,6 +43,18 @@ static inline unsigned int refcount_read(const refcount_t *r)
 	return atomic_read(&r->refs);
 }
 
+/**
+ * refcount_reset_if_equal - reset refcount to zero if the @count is matched
+ * @r: the refcount
+ * @count: the expected value to be equal to current refcount's value
+ *
+ * Return: true if the @count is equal to refcount's value, false otherwise
+ */
+static inline bool refcount_reset_if_equal(refcount_t *r, int count)
+{
+	return likely(atomic_cmpxchg(&r->refs, count, 0) == count);
+}
+
 extern __must_check bool refcount_add_not_zero_checked(unsigned int i, refcount_t *r);
 extern void refcount_add_checked(unsigned int i, refcount_t *r);
 
