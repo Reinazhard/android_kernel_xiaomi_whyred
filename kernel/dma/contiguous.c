@@ -260,7 +260,8 @@ static int __init rmem_cma_setup(struct reserved_mem *rmem)
 		return -EINVAL;
 	}
 
-	err = cma_init_reserved_mem(rmem->base, rmem->size, 0, rmem->name, &cma);
+	err = cma_init_reserved_mem(rmem->base, rmem->size, 0, rmem->name, &cma,
+				    false);
 	if (err) {
 		pr_err("Reserved memory: unable to setup CMA region\n");
 		return err;

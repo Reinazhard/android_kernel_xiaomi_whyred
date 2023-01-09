@@ -236,8 +236,24 @@ void gcma_area_init(unsigned long pfn, unsigned long page_count)
 	area->end_pfn = pfn + page_count - 1;
 
 	pr_info("[%d] GCMA area initialized\n", area_id);
+}
 
-	return 0;
+static void page_area_lock(struct page *page)
+{
+	struct gcma_area *area;
+
+	VM_BUG_ON(!irqs_disabled());
+
+	area = &areas[page->units];
+	spin_lock(&area->free_pages_lock);
+}
+
+static void page_area_unlock(struct page *page)
+{
+	struct gcma_area *area;
+
+	area = &areas[page->units];
+	spin_unlock(&area->free_pages_lock);
 }
 
 static struct page *gcma_alloc_page(void)
@@ -274,13 +290,11 @@ static void gcma_free_page(struct page *page)
 {
 	struct gcma_area *area = &areas[page->units];
 
-	spin_lock(&area->free_pages_lock);
 	page->mapping = NULL;
 	page->index = 0;
 	VM_BUG_ON(!list_empty(&page->lru));
 	list_add(&page->lru, &area->free_pages);
 	SetPageGCMAFree(page);
-	spin_unlock(&area->free_pages_lock);
 }
 
 static inline void gcma_get_page(struct page *page)
@@ -297,12 +311,13 @@ static void gcma_put_page(struct page *page)
 {
 	if (put_page_testzero(page)) {
 		unsigned long flags;
-		struct gcma_area *area = &areas[page->units];
 		struct gcma_inode *inode = (struct gcma_inode *)page->mapping;
 
 		local_irq_save(flags);
 		delete_page_from_lru(page);
+		page_area_lock(page);
 		gcma_free_page(page);
+		page_area_unlock(page);
 		local_irq_restore(flags);
 		if (inode)
 			put_gcma_inode(inode);
@@ -331,6 +346,177 @@ static void gcma_erase_page(struct gcma_inode *inode, unsigned long index,
 	/* The inode refcount will decrease when the page is freed */
 	__xa_erase(&inode->pages, index);
 	gcma_put_page(page);
+}
+
+static void __gcma_discard_range(struct gcma_area *area,
+				unsigned long start_pfn,
+				unsigned long end_pfn)
+{
+	unsigned long pfn;
+	struct page *page;
+	unsigned long scanned = 0;
+
+	local_irq_disable();
+
+	for (pfn = start_pfn; pfn <= end_pfn; pfn++) {
+		struct gcma_inode *inode;
+		unsigned long index;
+again:
+		if (!(++scanned % XA_CHECK_SCHED)) {
+			/* let in any pending interrupt */
+			local_irq_enable();
+			cond_resched();
+			local_irq_disable();
+		}
+
+		page = pfn_to_page(pfn);
+		page_area_lock(page);
+		if (PageGCMAFree(page)) {
+			/*
+			 * Isolate page from the free list to prevent further
+			 * allocation.
+			 */
+			ClearPageGCMAFree(page);
+			list_del_init(&page->lru);
+			page_area_unlock(page);
+			continue;
+		}
+
+		rcu_read_lock();
+		if (!gcma_get_page_unless_zero(page)) {
+			page_area_unlock(page);
+			rcu_read_unlock();
+			/*
+			 * The page is being freed but did not reach
+			 * the free list.
+			 */
+			goto again;
+		}
+
+		/*
+		 * From now on, the page and inode is never freed by page's
+		 * refcount and RCU lock.
+		 */
+		inode = (struct gcma_inode *)page->mapping;
+		index = page->index;
+		page_area_unlock(page);
+
+		/*
+		 * Page is not stored yet since it was allocated. Just retry
+		 */
+		if (!inode) {
+			gcma_put_page(page);
+			rcu_read_unlock();
+			goto again;
+		}
+
+		xa_lock(&inode->pages);
+		/*
+		 * If the page is not attached to the inode or already is erased,
+		 * just retry.
+		 */
+		if (xa_load(&inode->pages, index) != page) {
+			xa_unlock(&inode->pages);
+			gcma_put_page(page);
+			rcu_read_unlock();
+			goto again;
+		}
+
+		/*
+		 * It's okay to release RCU lock since we verifed the page is
+		 * still attached to inode, which means the inode never released
+		 * until the page will release the refcount of the inode at
+		 * freeing.
+		 */
+		rcu_read_unlock();
+
+		/*
+		 * If someone is holding the refcount, wait on them to finish
+		 * the work. In theory, it could cause livelock if someone
+		 * repeated to hold/release the refcount in parallel but it
+		 * should be extremely rare.
+		 *
+		 * Expect refcount two from xarray and this function.
+		 */
+		if (!page_ref_freeze(page, 2)) {
+			xa_unlock(&inode->pages);
+			gcma_put_page(page);
+			goto again;
+		}
+
+		__xa_erase(&inode->pages, index);
+		xa_unlock(&inode->pages);
+
+		delete_page_from_lru(page);
+		page_area_lock(page);
+		gcma_free_page(page);
+		/*
+		 * Isolate the page from free list to prevent further
+		 * allocation
+		 */
+		list_del_init(&page->lru);
+		ClearPageGCMAFree(page);
+		page_area_unlock(page);
+
+		/*
+		 * Release the inode refcount the gcma_put_page was supposed
+		 * to do.
+		 */
+		put_gcma_inode(inode);
+	}
+	local_irq_enable();
+}
+
+void gcma_discard_range(unsigned long start_pfn, unsigned long end_pfn)
+{
+	int i;
+	struct gcma_area *area;
+	int nr_area = atomic_read(&nr_gcma_area);
+
+	for (i = 0; i < nr_area; i++) {
+		unsigned long s_pfn, e_pfn;
+
+		area = &areas[i];
+		if (area->end_pfn < start_pfn)
+			continue;
+
+		if (area->start_pfn > end_pfn)
+			continue;
+
+		s_pfn = max(start_pfn, area->start_pfn);
+		e_pfn = min(end_pfn, area->end_pfn);
+
+		__gcma_discard_range(area, s_pfn, e_pfn);
+	}
+}
+
+void gcma_free_range(unsigned long start_pfn, unsigned long end_pfn)
+{
+	unsigned long pfn;
+	struct page *page;
+	unsigned long scanned = 0;
+
+	VM_BUG_ON(irqs_disabled());
+
+	local_irq_disable();
+
+	for (pfn = start_pfn; pfn <= end_pfn; pfn++) {
+		if (!(++scanned % XA_CHECK_SCHED)) {
+			local_irq_enable();
+			/* let in any pending interrupt */
+			cond_resched();
+			local_irq_disable();
+		}
+
+		page = pfn_to_page(pfn);
+		VM_BUG_ON(PageGCMAFree(page));
+
+		page_area_lock(page);
+		gcma_free_page(page);
+		page_area_unlock(page);
+	}
+
+	local_irq_enable();
 }
 
 static void evict_gcma_lru_pages(unsigned long nr_request)
@@ -611,6 +797,9 @@ static int gcma_cc_init_fs(size_t page_size)
 {
 	int hash_id;
 	struct gcma_fs *gcma_fs;
+
+	if (atomic_read(&nr_gcma_area) == 0)
+		return -ENOMEM;
 
 	if (page_size != PAGE_SIZE)
 		return -EOPNOTSUPP;
