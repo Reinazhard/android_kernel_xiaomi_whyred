@@ -25,6 +25,13 @@ config ANDROID_VSOC
 
 source "drivers/staging/android/ion/Kconfig"
 
+config ALLOC_BUFFERS_IN_4K_CHUNKS
+	bool "Turns off allocation optimization and allocate only 4K pages"
+	depends on ARCH_QCOM && ION
+	help
+          Choose this option if you want ION to allocate buffers in
+          only 4KB chunks.
+
 endif # if ANDROID
 
 endmenu
