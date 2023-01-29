@@ -126,4 +126,10 @@ extern void swiotlb_set_max_segment(unsigned int);
 
 extern const struct dma_map_ops swiotlb_dma_ops;
 
+/*
+ * The number of IO TLB blocks (in groups of 64) between io_tlb_start and
+ * io_tlb_end.  This is command line adjustable via setup_io_tlb_npages.
+ */
+static unsigned long io_tlb_nslabs;
+
 #endif /* __LINUX_SWIOTLB_H */
