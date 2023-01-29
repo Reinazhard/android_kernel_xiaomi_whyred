@@ -1216,12 +1216,12 @@ new_kmalloc_cache(int idx, enum kmalloc_cache_type type,
 
 	if (minalign > ARCH_KMALLOC_MINALIGN) {
 		aligned_size = ALIGN(aligned_size, minalign);
-		aligned_idx = __kmalloc_index(aligned_size, false);
+		aligned_idx = kmalloc_index(aligned_size);
 	}
 
 	if (!kmalloc_caches[type][aligned_idx])
 		kmalloc_caches[type][aligned_idx] = create_kmalloc_cache(
-					kmalloc_info[aligned_idx].name[type],
+					kmalloc_info[aligned_idx].name,
 					aligned_size, flags);
 	if (idx != aligned_idx)
 		kmalloc_caches[type][idx] = kmalloc_caches[type][aligned_idx];
