@@ -1186,7 +1186,7 @@ static unsigned int __kmalloc_minalign(void)
 	 * ARCH_KMALLOC_MINALIGN matches ARCH_DMA_MINALIGN.
 	 */
 	if (!IS_ENABLED(CONFIG_DMA_BOUNCE_UNALIGNED_KMALLOC) ||
-	    cache_align < ARCH_KMALLOC_MINALIGN || io_tlb_default_mem.nslabs)
+	    cache_align < ARCH_KMALLOC_MINALIGN || io_tlb_nslabs)
 		return ARCH_KMALLOC_MINALIGN;
 
 	pr_info_once("No default DMA bounce buffer, increasing the kmalloc() minimum alignment to %d\n",
@@ -1195,7 +1195,8 @@ static unsigned int __kmalloc_minalign(void)
 }
 
 void __init
-new_kmalloc_cache(int idx, int type, slab_flags_t flags)
+new_kmalloc_cache(int idx, enum kmalloc_cache_type type,
+				slab_flags_t flags)
 {
 	const char *name;
 	unsigned int minalign = __kmalloc_minalign();
