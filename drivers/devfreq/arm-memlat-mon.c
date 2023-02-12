@@ -354,7 +354,6 @@ static struct platform_driver arm_memlat_mon_driver = {
 	.driver = {
 		.name = "arm-memlat-mon",
 		.of_match_table = memlat_match_table,
-		.suppress_bind_attrs = true,
 	},
 };
 
