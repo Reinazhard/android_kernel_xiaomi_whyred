@@ -23,7 +23,6 @@
 #include "governor.h"
 #include "governor_memlat.h"
 #include <linux/perf_event.h>
-#include <linux/of_device.h>
 
 enum ev_index {
 	INST_IDX,
@@ -51,10 +50,6 @@ struct cpu_grp_info {
 	unsigned int event_ids[NUM_EVENTS];
 	struct cpu_pmu_stats *cpustats;
 	struct memlat_hwmon hw;
-};
-
-struct memlat_mon_spec {
-	bool is_compute;
 };
 
 #define to_cpustats(cpu_grp, cpu) \
@@ -87,9 +82,6 @@ static inline unsigned long read_event(struct event_data *event)
 {
 	unsigned long ev_count;
 	u64 total, enabled, running;
-
-	if (!event->pevent)
-		return 0;
 
 	total = perf_event_read_value(event->pevent, &enabled, &running);
 	ev_count = total - event->prev_count;
@@ -257,7 +249,6 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct memlat_hwmon *hw;
 	struct cpu_grp_info *cpu_grp;
-	const struct memlat_mon_spec *spec;
 	int cpu, ret;
 	u32 event_id;
 
@@ -291,22 +282,6 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 
 	cpu_grp->event_ids[CYC_IDX] = CYC_EV;
 
-	for_each_cpu(cpu, &cpu_grp->cpus)
-		to_devstats(cpu_grp, cpu)->id = cpu;
-
-	hw->start_hwmon = &start_hwmon;
-	hw->stop_hwmon = &stop_hwmon;
-	hw->get_cnt = &get_cnt;
-
-	spec = of_device_get_match_data(dev);
-	if (spec && spec->is_compute) {
-		ret = register_compute(dev, hw);
-		if (ret)
-			pr_err("Compute Gov registration failed\n");
-
-		return ret;
-	}
-
 	ret = of_property_read_u32(dev->of_node, "qcom,cachemiss-ev",
 				   &event_id);
 	if (ret) {
@@ -331,21 +306,24 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 	else
 		cpu_grp->event_ids[STALL_CYC_IDX] = event_id;
 
-	ret = register_memlat(dev, hw);
-	if (ret)
-		pr_err("Mem Latency Gov registration failed\n");
+	for_each_cpu(cpu, &cpu_grp->cpus)
+		to_devstats(cpu_grp, cpu)->id = cpu;
 
-	return ret;
+	hw->start_hwmon = &start_hwmon;
+	hw->stop_hwmon = &stop_hwmon;
+	hw->get_cnt = &get_cnt;
+
+	ret = register_memlat(dev, hw);
+	if (ret) {
+		pr_err("Mem Latency Gov registration failed\n");
+		return ret;
+	}
+
+	return 0;
 }
 
-static const struct memlat_mon_spec spec[] = {
-	[0] = { false },
-	[1] = { true },
-};
-
 static const struct of_device_id memlat_match_table[] = {
-	{ .compatible = "qcom,arm-memlat-mon", .data = &spec[0] },
-	{ .compatible = "qcom,arm-cpu-mon", .data = &spec[1] },
+	{ .compatible = "qcom,arm-memlat-mon" },
 	{}
 };
 
