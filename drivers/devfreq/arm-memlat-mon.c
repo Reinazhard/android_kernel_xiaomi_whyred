@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2014-2018, 2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2020, The Linux Foundation. All rights reserved.
  */
 
 #define pr_fmt(fmt) "arm-memlat-mon: " fmt
@@ -39,19 +39,20 @@ enum common_ev_idx {
 enum mon_type {
 	MEMLAT_CPU_GRP,
 	MEMLAT_MON,
+	COMPUTE_MON,
 	NUM_MON_TYPES
 };
 
 struct event_data {
-	struct perf_event *pevent;
-	unsigned long prev_count;
-	unsigned long last_delta;
+	struct perf_event	*pevent;
+	unsigned long		prev_count;
+	unsigned long		last_delta;
 };
 
 struct cpu_data {
-	struct event_data common_evs[NUM_COMMON_EVS];
-	unsigned long freq;
-	unsigned long stall_pct;
+	struct event_data	common_evs[NUM_COMMON_EVS];
+	unsigned long		freq;
+	unsigned long		stall_pct;
 };
 
 /**
@@ -64,8 +65,20 @@ struct cpu_data {
  *				defaults to using all of @cpu_grp's CPUs.
  * @miss_ev_id:			The event code corresponding to the @miss_ev
  *				perf event. Will be 0 for compute.
+ * @access_ev_id:		The event code corresponding to the @access_ev
+ *				perf event. Optional - only needed for writeback
+ *				percent.
+ * @wb_ev_id:			The event code corresponding to the @wb_ev perf
+ *				event. Optional - only needed for writeback
+ *				percent.
  * @miss_ev:			The cache miss perf event exclusive to this
  *				mon. Will be NULL for compute.
+ * @access_ev:			The cache access perf event exclusive to this
+ *				mon. Optional - only needed for writeback
+ *				percent.
+ * @wb_ev:			The cache writeback perf event exclusive to this
+ *				mon. Optional - only needed for writeback
+ *				percent.
  * @requested_update_ms:	The mon's desired polling rate. The lowest
  *				@requested_update_ms of all mons determines
  *				@cpu_grp's update_ms.
@@ -77,8 +90,12 @@ struct memlat_mon {
 	bool			is_active;
 	cpumask_t		cpus;
 	unsigned int		miss_ev_id;
+	unsigned int		access_ev_id;
+	unsigned int		wb_ev_id;
 	unsigned int		requested_update_ms;
 	struct event_data	*miss_ev;
+	struct event_data	*access_ev;
+	struct event_data	*wb_ev;
 	struct memlat_hwmon	hw;
 
 	struct memlat_cpu_grp	*cpu_grp;
@@ -159,17 +176,14 @@ static void update_counts(struct memlat_cpu_grp *cpu_grp)
 	struct memlat_mon *mon;
 	ktime_t now = ktime_get();
 	unsigned long delta = ktime_us_delta(now, cpu_grp->last_update_ts);
-	struct cpu_data *cpu_data;
-	struct event_data *common_evs;
-	unsigned int mon_idx;
 
 	cpu_grp->last_ts_delta_us = delta;
 	cpu_grp->last_update_ts = now;
 
 	for_each_cpu(cpu, &cpu_grp->cpus) {
+		struct cpu_data *cpu_data = to_cpu_data(cpu_grp, cpu);
+		struct event_data *common_evs = cpu_data->common_evs;
 
-		cpu_data = to_cpu_data(cpu_grp, cpu);
-		common_evs = cpu_data->common_evs;
 		for (i = 0; i < NUM_COMMON_EVS; i++)
 			read_event(&common_evs[i]);
 
@@ -177,7 +191,10 @@ static void update_counts(struct memlat_cpu_grp *cpu_grp)
 			common_evs[STALL_IDX].last_delta =
 				common_evs[CYC_IDX].last_delta;
 
-		cpu_data->freq = common_evs[CYC_IDX].last_delta / delta;
+		if (delta != 0)
+			cpu_data->freq = common_evs[CYC_IDX].last_delta / delta;
+		else
+			cpu_data->freq = common_evs[CYC_IDX].last_delta;
 		cpu_data->stall_pct = mult_frac(100,
 				common_evs[STALL_IDX].last_delta,
 				common_evs[CYC_IDX].last_delta);
@@ -190,8 +207,13 @@ static void update_counts(struct memlat_cpu_grp *cpu_grp)
 			continue;
 
 		for_each_cpu(cpu, &mon->cpus) {
-			mon_idx = cpu - cpumask_first(&mon->cpus);
+			unsigned int mon_idx =
+				cpu - cpumask_first(&mon->cpus);
 			read_event(&mon->miss_ev[mon_idx]);
+			if (mon->wb_ev_id && mon->access_ev_id) {
+				read_event(&mon->wb_ev[mon_idx]);
+				read_event(&mon->access_ev[mon_idx]);
+			}
 		}
 	}
 }
@@ -220,6 +242,13 @@ static unsigned long get_cnt(struct memlat_hwmon *hw)
 			devstats->inst_count = 0;
 			devstats->mem_count = 1;
 		}
+
+		if (mon->access_ev_id && mon->wb_ev_id)
+			devstats->wb_pct =
+				mult_frac(100, mon->wb_ev[mon_idx].last_delta,
+					  mon->access_ev[mon_idx].last_delta);
+		else
+			devstats->wb_pct = 0;
 	}
 
 	return 0;
@@ -245,7 +274,6 @@ static struct perf_event_attr *alloc_attr(void)
 	attr->type = PERF_TYPE_RAW;
 	attr->size = sizeof(struct perf_event_attr);
 	attr->pinned = 1;
-	attr->exclude_idle = 0;
 
 	return attr;
 }
@@ -281,7 +309,7 @@ static int init_common_evs(struct memlat_cpu_grp *cpu_grp,
 		for (i = 0; i < NUM_COMMON_EVS; i++) {
 			ret = set_event(&common_evs[i], cpu,
 					cpu_grp->common_ev_ids[i], attr);
-			if (ret)
+			if (ret < 0)
 				break;
 		}
 	}
@@ -324,7 +352,7 @@ static void memlat_monitor_work(struct work_struct *work)
 		df = mon->hw.df;
 		mutex_lock(&df->lock);
 		err = update_devfreq(df);
-		if (err)
+		if (err < 0)
 			dev_err(mon->hw.dev, "Memlat update failed: %d\n", err);
 		mutex_unlock(&df->lock);
 	}
@@ -352,7 +380,7 @@ static int start_hwmon(struct memlat_hwmon *hw)
 	should_init_cpu_grp = !(cpu_grp->num_active_mons++);
 	if (should_init_cpu_grp) {
 		ret = init_common_evs(cpu_grp, attr);
-		if (ret)
+		if (ret < 0)
 			goto unlock_out;
 
 		INIT_DEFERRABLE_WORK(&cpu_grp->work, &memlat_monitor_work);
@@ -364,8 +392,20 @@ static int start_hwmon(struct memlat_hwmon *hw)
 
 			ret = set_event(&mon->miss_ev[idx], cpu,
 					mon->miss_ev_id, attr);
-			if (ret)
+			if (ret < 0)
 				goto unlock_out;
+
+			if (mon->access_ev_id && mon->wb_ev_id) {
+				ret = set_event(&mon->access_ev[idx], cpu,
+						mon->access_ev_id, attr);
+				if (ret)
+					goto unlock_out;
+
+				ret = set_event(&mon->wb_ev[idx], cpu,
+						mon->wb_ev_id, attr);
+				if (ret)
+					goto unlock_out;
+			}
 		}
 	}
 
@@ -402,6 +442,7 @@ static void stop_hwmon(struct memlat_hwmon *hw)
 		devstats->mem_count = 0;
 		devstats->freq = 0;
 		devstats->stall_pct = 0;
+		devstats->wb_pct = 0;
 	}
 
 	if (!cpu_grp->num_active_mons) {
@@ -467,7 +508,7 @@ static int get_mask_from_dev_handle(struct platform_device *pdev,
 	int cpu, i = 0;
 	int ret = -ENOENT;
 
-	dev_phandle = of_parse_phandle(dev->of_node, "cpulist", i++);
+	dev_phandle = of_parse_phandle(dev->of_node, "qcom,cpulist", i++);
 	while (dev_phandle) {
 		for_each_possible_cpu(cpu) {
 			cpu_dev = get_cpu_device(cpu);
@@ -478,12 +519,31 @@ static int get_mask_from_dev_handle(struct platform_device *pdev,
 			}
 		}
 		dev_phandle = of_parse_phandle(dev->of_node,
-						"cpulist", i++);
+						"qcom,cpulist", i++);
 	}
 
 	return ret;
 }
 
+static struct device_node *parse_child_nodes(struct device *dev)
+{
+	struct device_node *of_child;
+	int ddr_type_of = -1;
+	int ddr_type = of_fdt_get_ddrtype();
+	int ret;
+
+	for_each_child_of_node(dev->of_node, of_child) {
+		ret = of_property_read_u32(of_child, "qcom,ddr-type",
+							&ddr_type_of);
+		if (!ret && (ddr_type == ddr_type_of)) {
+			dev_dbg(dev,
+				"ddr-type = %d, is matching DT entry\n",
+				ddr_type_of);
+			return of_child;
+		}
+	}
+	return NULL;
+}
 
 #define DEFAULT_UPDATE_MS 100
 static int memlat_cpu_grp_probe(struct platform_device *pdev)
@@ -518,24 +578,24 @@ static int memlat_cpu_grp_probe(struct platform_device *pdev)
 	if (!cpu_grp->mons)
 		return -ENOMEM;
 
-	ret = of_property_read_u32(dev->of_node, "inst-ev", &event_id);
-	if (ret) {
+	ret = of_property_read_u32(dev->of_node, "qcom,inst-ev", &event_id);
+	if (ret < 0) {
 		dev_dbg(dev, "Inst event not specified. Using def:0x%x\n",
 			INST_EV);
 		event_id = INST_EV;
 	}
 	cpu_grp->common_ev_ids[INST_IDX] = event_id;
 
-	ret = of_property_read_u32(dev->of_node, "cyc-ev", &event_id);
-	if (ret) {
+	ret = of_property_read_u32(dev->of_node, "qcom,cyc-ev", &event_id);
+	if (ret < 0) {
 		dev_dbg(dev, "Cyc event not specified. Using def:0x%x\n",
 			CYC_EV);
 		event_id = CYC_EV;
 	}
 	cpu_grp->common_ev_ids[CYC_IDX] = event_id;
 
-	ret = of_property_read_u32(dev->of_node, "stall-ev", &event_id);
-	if (ret)
+	ret = of_property_read_u32(dev->of_node, "qcom,stall-ev", &event_id);
+	if (ret < 0)
 		dev_dbg(dev, "Stall event not specified. Skipping.\n");
 	else
 		cpu_grp->common_ev_ids[STALL_IDX] = event_id;
@@ -555,7 +615,7 @@ static int memlat_cpu_grp_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int memlat_mon_probe(struct platform_device *pdev)
+static int memlat_mon_probe(struct platform_device *pdev, bool is_compute)
 {
 	struct device *dev = &pdev->dev;
 	int ret = 0;
@@ -590,7 +650,8 @@ static int memlat_mon_probe(struct platform_device *pdev)
 		if (!cpumask_subset(&mon->cpus, &cpu_grp->cpus)) {
 			dev_err(dev,
 				"Mon CPUs must be a subset of cpu_grp CPUs. mon=%*pbl cpu_grp=%*pbl\n",
-				mon->cpus, cpu_grp->cpus);
+				cpumask_pr_args(&mon->cpus),
+				cpumask_pr_args(&cpu_grp->cpus));
 			ret = -EINVAL;
 			goto unlock_out;
 		}
@@ -599,7 +660,7 @@ static int memlat_mon_probe(struct platform_device *pdev)
 	num_cpus = cpumask_weight(&mon->cpus);
 
 	hw = &mon->hw;
-	hw->of_node = of_parse_phandle(dev->of_node, "target-dev", 0);
+	hw->of_node = of_parse_phandle(dev->of_node, "qcom,target-dev", 0);
 	if (!hw->of_node) {
 		dev_err(dev, "Couldn't find a target device.\n");
 		ret = -ENODEV;
@@ -621,27 +682,72 @@ static int memlat_mon_probe(struct platform_device *pdev)
 	hw->start_hwmon = &start_hwmon;
 	hw->stop_hwmon = &stop_hwmon;
 	hw->get_cnt = &get_cnt;
+	if (of_get_child_count(dev->of_node))
+		hw->get_child_of_node = &parse_child_nodes;
 	hw->request_update_ms = &request_update_ms;
 
-	mon->miss_ev =
-	  devm_kzalloc(dev, num_cpus * sizeof(*mon->miss_ev),
-	    GFP_KERNEL);
-	if (!mon->miss_ev) {
-		ret = -ENOMEM;
-		goto unlock_out;
-	}
+	/*
+	 * Compute mons rely solely on common events.
+	 */
+	if (is_compute) {
+		mon->miss_ev_id = 0;
+		mon->access_ev_id = 0;
+		mon->wb_ev_id = 0;
+		ret = register_compute(dev, hw);
+	} else {
+		mon->miss_ev =
+			devm_kzalloc(dev, num_cpus * sizeof(*mon->miss_ev),
+				     GFP_KERNEL);
+		if (!mon->miss_ev) {
+			ret = -ENOMEM;
+			goto unlock_out;
+		}
 
-	ret = of_property_read_u32(dev->of_node, "cachemiss-ev",
-	  &event_id);
-	if (ret) {
-		dev_err(dev, "Cache miss event missing for mon: %d\n",
-		  ret);
-		ret = -EINVAL;
-		goto unlock_out;
-	}
-	mon->miss_ev_id = event_id;
+		ret = of_property_read_u32(dev->of_node, "qcom,cachemiss-ev",
+						&event_id);
+		if (ret < 0) {
+			dev_err(dev, "Cache miss event missing for mon: %d\n",
+					ret);
+			ret = -EINVAL;
+			goto unlock_out;
+		}
+		mon->miss_ev_id = event_id;
 
-	ret = register_memlat(dev, hw);
+		ret = of_property_read_u32(dev->of_node, "qcom,access-ev",
+					   &event_id);
+		if (ret)
+			dev_dbg(dev, "Access event not specified. Skipping.\n");
+		else
+			mon->access_ev_id = event_id;
+
+		ret = of_property_read_u32(dev->of_node, "qcom,wb-ev",
+					   &event_id);
+		if (ret)
+			dev_dbg(dev, "WB event not specified. Skipping.\n");
+		else
+			mon->wb_ev_id = event_id;
+
+		if (mon->wb_ev_id && mon->access_ev_id) {
+			mon->access_ev =
+				devm_kzalloc(dev, num_cpus *
+					     sizeof(*mon->access_ev),
+					     GFP_KERNEL);
+			if (!mon->access_ev) {
+				ret = -ENOMEM;
+				goto unlock_out;
+			}
+
+			mon->wb_ev =
+				devm_kzalloc(dev, num_cpus *
+					     sizeof(*mon->wb_ev), GFP_KERNEL);
+			if (!mon->wb_ev) {
+				ret = -ENOMEM;
+				goto unlock_out;
+			}
+		}
+
+		ret = register_memlat(dev, hw);
+	}
 
 	if (!ret)
 		cpu_grp->num_inited_mons++;
@@ -668,7 +774,10 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 			of_platform_populate(dev->of_node, NULL, NULL, dev);
 		break;
 	case MEMLAT_MON:
-		ret = memlat_mon_probe(pdev);
+		ret = memlat_mon_probe(pdev, false);
+		break;
+	case COMPUTE_MON:
+		ret = memlat_mon_probe(pdev, true);
 		break;
 	default:
 		/*
@@ -678,7 +787,7 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	if (ret) {
+	if (ret < 0) {
 		dev_err(dev, "Failure to probe memlat device: %d\n", ret);
 		return ret;
 	}
@@ -689,11 +798,13 @@ static int arm_memlat_mon_driver_probe(struct platform_device *pdev)
 static const struct memlat_mon_spec spec[] = {
 	[0] = { MEMLAT_CPU_GRP },
 	[1] = { MEMLAT_MON },
+	[2] = { COMPUTE_MON },
 };
 
 static const struct of_device_id memlat_match_table[] = {
-	{ .compatible = "arm-memlat-cpugrp", .data = &spec[0] },
-	{ .compatible = "arm-memlat-mon", .data = &spec[1] },
+	{ .compatible = "qcom,arm-memlat-cpugrp", .data = &spec[0] },
+	{ .compatible = "qcom,arm-memlat-mon", .data = &spec[1] },
+	{ .compatible = "qcom,arm-compute-mon", .data = &spec[2] },
 	{}
 };
 
