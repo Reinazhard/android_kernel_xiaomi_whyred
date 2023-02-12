@@ -27,6 +27,9 @@
 #include <linux/of_device.h>
 #include <soc/qcom/scm.h>
 
+#define migrate_disable() preempt_disable()
+#define migrate_enable() preempt_enable()
+
 enum ev_index {
 	INST_IDX,
 	CM_IDX,
