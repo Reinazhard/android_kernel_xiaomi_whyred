@@ -1056,10 +1056,11 @@
 			qcom,cpulist = <&CPU1>;
 			qcom,target-dev = <&cpu1_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
+			qcom,stall-ev = <0xE7>;
 			qcom,core-dev-table =
 				< 902400 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(547, 4) >,
-				< 1881600 MHZ_TO_MBPS(1017, 4) >;
+				< 1843200 MHZ_TO_MBPS(1017, 4) >;
 		};
 
 		cpu1_computemon: qcom,cpu1-computemon {
@@ -1069,7 +1070,7 @@
 			qcom,core-dev-table =
 				< 633600 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(412, 4) >,
-				< 1881600 MHZ_TO_MBPS(768, 4) >;
+				< 1843200 MHZ_TO_MBPS(768, 4) >;
 		};
 	};
 
@@ -1082,10 +1083,11 @@
 			qcom,cpulist = <&CPU2>;
 			qcom,target-dev = <&cpu2_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
+			qcom,stall-ev = <0xE7>;
 			qcom,core-dev-table =
 				< 902400 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(547, 4) >,
-				< 1881600 MHZ_TO_MBPS(1017, 4) >;
+				< 1843200 MHZ_TO_MBPS(1017, 4) >;
 		};
 
 		cpu2_computemon: qcom,cpu2-computemon {
@@ -1095,7 +1097,7 @@
 			qcom,core-dev-table =
 				< 633600 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(412, 4) >,
-				< 1881600 MHZ_TO_MBPS(768, 4) >;
+				< 1843200 MHZ_TO_MBPS(768, 4) >;
 		};
 	};
 
@@ -1108,10 +1110,11 @@
 			qcom,cpulist = <&CPU3>;
 			qcom,target-dev = <&cpu3_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
+			qcom,stall-ev = <0xE7>;
 			qcom,core-dev-table =
 				< 902400 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(547, 4) >,
-				< 1881600 MHZ_TO_MBPS(1017, 4) >;
+				< 1843200 MHZ_TO_MBPS(1017, 4) >;
 		};
 
 		cpu3_computemon: qcom,cpu3-computemon {
@@ -1121,7 +1124,7 @@
 			qcom,core-dev-table =
 				< 633600 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(412, 4) >,
-				< 1881600 MHZ_TO_MBPS(768, 4) >;
+				< 1843200 MHZ_TO_MBPS(768, 4) >;
 		};
 	};
 
@@ -1164,6 +1167,7 @@
 			qcom,cpulist = <&CPU5>;
 			qcom,target-dev = <&cpu5_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
+			qcom,stall-ev = <0x24>;
 			qcom,core-dev-table =
 				< 1113600 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(1017, 4) >,
@@ -1193,6 +1197,7 @@
 			qcom,cpulist = <&CPU6>;
 			qcom,target-dev = <&cpu6_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
+			qcom,stall-ev = <0x24>;
 			qcom,core-dev-table =
 				< 1113600 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(1017, 4) >,
@@ -1222,6 +1227,7 @@
 			qcom,cpulist = <&CPU7>;
 			qcom,target-dev = <&cpu7_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
+			qcom,stall-ev = <0x24>;
 			qcom,core-dev-table =
 				< 1113600 MHZ_TO_MBPS(200, 4) >,
 				< 1401600 MHZ_TO_MBPS(1017, 4) >,
