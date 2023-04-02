@@ -879,6 +879,38 @@ static int step_chg_register_notifier(struct step_chg_info *chip)
 	return 0;
 }
 
+#ifdef CONFIG_MACH_MI
+int qcom_soft_jeita_fcc_init(int critical_low_fcc, int cool_fcc, int normal_cool_fcc, int normal_fcc, int warm_fcc)
+{
+	struct step_chg_info *chip;
+
+	if (the_chip == NULL) {
+		pr_err("Qcom soft jeita chip info is not initialized\n");
+		return -EINVAL;
+	}
+	if (the_chip->sw_jeita_enable) {
+		chip->jeita_fcc_config->fcc_cfg[0].value = critical_low_fcc;
+		chip->jeita_fcc_config->fcc_cfg[1].value = cool_fcc;
+		chip->jeita_fcc_config->fcc_cfg[2].value = normal_cool_fcc;
+		chip->jeita_fcc_config->fcc_cfg[3].value = normal_fcc;
+		chip->jeita_fcc_config->fcc_cfg[4].value = warm_fcc;
+
+		pr_info("chip->jeita_fcc_config->fcc_cfg[0].value: %d "
+				"chip->jeita_fcc_config->fcc_cfg[1].value: %d "
+				"chip->jeita_fcc_config->fcc_cfg[2].value: %d "
+				"chip->jeita_fcc_config->fcc_cfg[3].value: %d "
+				"chip->jeita_fcc_config->fcc_cfg[4].value: %d\n",
+				chip->jeita_fcc_config->fcc_cfg[0].value,
+				chip->jeita_fcc_config->fcc_cfg[1].value,
+				chip->jeita_fcc_config->fcc_cfg[2].value,
+				chip->jeita_fcc_config->fcc_cfg[3].value,
+				chip->jeita_fcc_config->fcc_cfg[4].value);
+	}
+
+	return 0;
+}
+#endif
+
 int qcom_step_chg_init(struct device *dev,
 		bool step_chg_enable, bool sw_jeita_enable, bool jeita_arb_en)
 {
