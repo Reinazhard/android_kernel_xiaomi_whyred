@@ -43,6 +43,19 @@
 	};
 };
 
+&pm660_adc_tm {
+	io-channels = <&pm660_vadc ADC_XO_THERM_PU2>,
+			<&pm660_vadc ADC_AMUX_THM1_PU2>,
+			<&pm660_vadc ADC_AMUX_THM5_PU2>,
+			<&pm660_vadc ADC_AMUX_THM4_PU2>;
+
+	backlight_therm {
+		reg = <ADC_AMUX_THM4_PU2>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+	};
+};
+
 &thermal_zones {
 	backlight_therm {
 		polling-delay-passive = <0>;
