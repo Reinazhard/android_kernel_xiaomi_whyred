@@ -901,6 +901,11 @@ int fg_get_msoc_raw(struct fg_dev *fg, int *val)
 	return 0;
 }
 
+#define FULL_CAPACITY	100
+#define FULL_SOC_RAW	255
+#if defined(CONFIG_MACH_XIAOMI_WAYNE) || defined(CONFIG_MACH_MI)
+#define FULL_SOC_REPORT_THR 250
+#endif
 int fg_get_msoc(struct fg_dev *fg, int *msoc)
 {
 	int rc;

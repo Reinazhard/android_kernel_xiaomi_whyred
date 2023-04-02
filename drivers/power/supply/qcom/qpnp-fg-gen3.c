@@ -811,7 +811,7 @@ static int fg_get_prop_capacity(struct fg_dev *fg, int *val)
 		return rc;
 
 #ifdef CONFIG_MACH_MI
-	if (chip->empty_restart_fg && (msoc == 0))
+	if (fg->empty_restart_fg && (msoc == 0))
 		msoc = EMPTY_REPORT_SOC;
 #endif
 
@@ -959,10 +959,10 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 
 #ifdef CONFIG_MACH_MI
 	rc = of_property_read_u32(profile_node, "qcom,nom-batt-capacity-mah",
-                       &chip->bp.nom_cap_uah);
+                       &fg->bp.nom_cap_uah);
 	if (rc < 0) {
                pr_err("battery nominal capacity unavailable, rc:%d\n", rc);
-               chip->bp.nom_cap_uah = -EINVAL;
+               fg->bp.nom_cap_uah = -EINVAL;
        }
 #endif
 
@@ -1873,7 +1873,7 @@ static int fg_set_recharge_soc(struct fg_dev *fg, int recharge_soc)
 	fg_encode(fg->sp, FG_SRAM_RECHARGE_SOC_THR, recharge_soc, &buf);
 #ifdef CONFIG_MACH_MI
 	if ((buf <= DEFAULT_RECHARGE_SOC_RAW)
-			&& (chip->health != POWER_SUPPLY_HEALTH_WARM))
+			&& (fg->health != POWER_SUPPLY_HEALTH_WARM))
 		buf += 1;
 #endif
 	rc = fg_sram_write(fg,
@@ -2371,11 +2371,11 @@ static int fg_esr_timer_config(struct fg_dev *fg, bool sleep)
 
 static void fg_esr_timer_config_work(struct work_struct *work)
 {
-	struct fg_chip *chip = container_of(work, struct fg_chip,
+	struct fg_dev *fg = container_of(work, struct fg_dev,
 					    esr_timer_config_work.work);
 	int rc;
 
-	rc = fg_esr_timer_config(chip, false);
+	rc = fg_esr_timer_config(fg, false);
 	if (rc < 0)
 		pr_err("Error in configuring ESR timer, rc=%d\n", rc);
 }
@@ -2770,17 +2770,18 @@ static int fg_config_esr_sw(struct fg_dev *fg)
 }
 
 #ifdef CONFIG_MACH_MI
-static int fg_set_cycle_count(struct fg_chip *chip, int value)
+static int fg_set_cycle_count(struct fg_dev *fg, int value)
 {
 	int rc = 0;
 	int i = 0;
 	u8 data[2];
+	struct fg_gen3_chip *chip;
 
 	for (i = 0; i < BUCKET_COUNT; i++) {
 		data[0] = value & 0xFF;
 		data[1] = value >> 8;
 
-		rc = fg_sram_write(chip, CYCLE_COUNT_WORD + (i / 2),
+		rc = fg_sram_write(fg, CYCLE_COUNT_WORD + (i / 2),
 					CYCLE_COUNT_OFFSET + (i % 2) * 2, data, 2,
 					FG_IMA_DEFAULT);
 		if (rc < 0)
@@ -3045,30 +3046,6 @@ static void pl_enable_work(struct work_struct *work)
 				struct fg_gen3_chip,
 				pl_enable_work.work);
 	struct fg_dev *fg = &chip->fg;
-#ifdef CONFIG_MACH_MI
-	int typec_mode;
-#endif
-#ifdef CONFIG_MACH_MI
-	/*
-	 * when parallel charger is begin to start charge, unvote
-	 * MAIN_ICL_BEFORE_DUAL_CHARGE to allow maxium charge current
-	 */
-	vote(chg->usb_icl_votable, MAIN_ICL_BEFORE_DUAL_CHARGE, false, 0);
-	/*
-	 * When parallel chip is smb1355, enable parallel charge
-	 * then the chip is smb1350, don't enable parallel because
-	 * it will occur reverse boost and charge current will less
-	 * than 1A.
-	 */
-	if ((chg->real_charger_type == POWER_SUPPLY_TYPE_USB_DCP)
-		&& (!chg->support_5v_2a)) {
-		typec_mode = smblib_get_prop_typec_mode(chg);
-		if (POWER_SUPPLY_TYPEC_SOURCE_HIGH != typec_mode)
-			vote(chg->pl_disable_votable, PL_LOW_ICL_VOTER, true, 0);
-	}
-	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_CDP)
-		vote(chg->pl_disable_votable, PL_LOW_ICL_VOTER, true, 0);
-#endif
 	vote(chip->pl_disable_votable, ESR_FCC_VOTER, false, 0);
 	vote(fg->awake_votable, ESR_FCC_VOTER, false, 0);
 }
@@ -3873,8 +3850,8 @@ static int fg_psy_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CAPACITY:
 		rc = fg_get_prop_capacity(fg, &pval->intval);
 #ifdef CONFIG_MACH_MI
-		if (chip->param.batt_soc >= 0)
-			pval->intval = chip->param.batt_soc;
+		if (fg->param.batt_soc >= 0)
+			pval->intval = fg->param.batt_soc;
 #endif
 		break;
 	case POWER_SUPPLY_PROP_REAL_CAPACITY:
@@ -3931,8 +3908,8 @@ static int fg_psy_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 #ifdef CONFIG_MACH_MI
-		if (-EINVAL != chip->bp.nom_cap_uah)
-			pval->intval = chip->bp.nom_cap_uah * 1000;
+		if (-EINVAL != fg->bp.nom_cap_uah)
+			pval->intval = fg->bp.nom_cap_uah * 1000;
 		else
 #endif
 		pval->intval = chip->cl.nom_cap_uah;
@@ -4119,7 +4096,7 @@ static int fg_psy_set_property(struct power_supply *psy,
 	switch (psp) {
 #ifdef CONFIG_MACH_MI
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-		rc = fg_set_cycle_count(chip, pval->intval);
+		rc = fg_set_cycle_count(fg, pval->intval);
 		pr_info("Cycle count is modified to %d by userspace\n",
 				pval->intval);
 		break;
@@ -5637,8 +5614,8 @@ static int fg_parse_dt(struct fg_gen3_chip *chip)
 #ifdef CONFIG_MACH_MI
 #define SOC_WORK_MS	20000
 static void soc_work_fn(struct work_struct *work)
-{	struct fg_chip *chip = container_of(work,
-				struct fg_chip,
+{	struct fg_dev *fg = container_of(work,
+				struct fg_dev,
 				soc_work.work);
 	int msoc = 0, esr_uohms = 0, curr_ua = 0, volt_uv = 0, temp = 0;
 	int soc = 0;
@@ -5647,43 +5624,43 @@ static void soc_work_fn(struct work_struct *work)
 	u8 buf_top[4], buf_auto[4], buf_profile[4];
 	static int prev_soc = -EINVAL;
 
-	rc = fg_get_prop_capacity(chip, &soc);
+	rc = fg_get_prop_capacity(fg, &soc);
 	if (rc < 0)
 		pr_err("Error in getting capacity, rc=%d\n", rc);
 
-	rc = fg_get_msoc_raw(chip, &msoc);
+	rc = fg_get_msoc_raw(fg, &msoc);
 	if (rc < 0)
 		pr_err("Error in getting msoc, rc=%d\n", rc);
 
-	rc = fg_get_sram_prop(chip, FG_SRAM_ESR, &esr_uohms);
+	rc = fg_get_sram_prop(fg, FG_SRAM_ESR, &esr_uohms);
 	if (rc < 0)
 		pr_err("failed to get ESR, rc=%d\n", rc);
 
-	fg_get_battery_current(chip, &curr_ua);
+	fg_get_battery_current(fg, &curr_ua);
 	if (rc < 0)
 		pr_err("failed to get current, rc=%d\n", rc);
 
-	rc = fg_get_battery_voltage(chip, &volt_uv);
+	rc = fg_get_battery_voltage(fg, &volt_uv);
 	if (rc < 0)
 		pr_err("failed to get voltage, rc=%d\n", rc);
 
-	rc = fg_get_battery_temp(chip, &temp);
+	rc = fg_get_battery_temp(fg, &temp);
 	if (rc < 0)
 		pr_err("failed to get temp, rc=%d\n", rc);
 
-	cycle_count = fg_get_cycle_count(chip);
+	cycle_count = fg_get_cycle_count(fg);
 
-	rc = fg_sram_read(chip, 0, 0, buf_top, 4, FG_IMA_DEFAULT);
+	rc = fg_sram_read(fg, 0, 0, buf_top, 4, FG_IMA_DEFAULT);
 	if (rc < 0) {
 		pr_err("sram read failed: address=0, rc=%d\n", rc);
 		return;
 	}
-	rc = fg_sram_read(chip, 19, 0, buf_auto, 4, FG_IMA_DEFAULT);
+	rc = fg_sram_read(fg, 19, 0, buf_auto, 4, FG_IMA_DEFAULT);
 	if (rc < 0) {
 		pr_err("sram read failed: address=19, rc=%d\n", rc);
 		return;
 	}
-	rc = fg_sram_read(chip, PROFILE_INTEGRITY_WORD, 0, buf_profile, 4, FG_IMA_DEFAULT);
+	rc = fg_sram_read(fg, PROFILE_INTEGRITY_WORD, 0, buf_profile, 4, FG_IMA_DEFAULT);
 	if (rc < 0) {
 		pr_err("sram read failed: address=79, rc=%d\n", rc);
 		return;
@@ -5702,28 +5679,28 @@ static void soc_work_fn(struct work_struct *work)
 
 	/* if soc changes, report power supply change uevent */
 	if (soc != prev_soc) {
-		if (chip->fg_psy)
-			power_supply_changed(chip->fg_psy);
+		if (fg->fg_psy)
+			power_supply_changed(fg->fg_psy);
 		prev_soc = soc;
 	}
 
 	schedule_delayed_work(
-		&chip->soc_work,
+		&fg->soc_work,
 		msecs_to_jiffies(SOC_WORK_MS));
 
 }
 
 static void empty_restart_fg_work(struct work_struct *work)
 {
-	struct fg_chip *chip = container_of(work,
-				struct fg_chip,
+	struct fg_dev *fg = container_of(work,
+				struct fg_dev,
 				empty_restart_fg_work.work);
 	union power_supply_propval prop = {0, };
 	int usb_present = 0;
 	int rc;
 
-	if (usb_psy_initialized(chip)) {
-		rc = power_supply_get_property(chip->usb_psy,
+	if (usb_psy_initialized(fg)) {
+		rc = power_supply_get_property(fg->usb_psy,
 			POWER_SUPPLY_PROP_PRESENT, &prop);
 		if (rc < 0) {
 			pr_err("Couldn't read usb present prop rc=%d\n", rc);
@@ -5734,21 +5711,21 @@ static void empty_restart_fg_work(struct work_struct *work)
 
 	/* only when usb is absent, restart fg */
 	if (!usb_present) {
-		if (chip->profile_loaded) {
+		if (fg->profile_load_status & PROFILE_LOADED) {
 			pr_info("soc empty after cold to warm, need to restart fg\n");
-			chip->empty_restart_fg = true;
-			rc = __fg_restart(chip);
+			fg->empty_restart_fg = true;
+			rc = fg_restart(fg, SOC_READY_WAIT_TIME_MS);
 			if (rc < 0) {
 				pr_err("Error in restarting FG, rc=%d\n", rc);
-				chip->empty_restart_fg = false;
+				fg->empty_restart_fg = false;
 				return;
 			}
 			pr_info("FG restart done\n");
-			if (batt_psy_initialized(chip))
-				power_supply_changed(chip->batt_psy);
+			if (batt_psy_initialized(fg))
+				power_supply_changed(fg->batt_psy);
 		} else {
 			schedule_delayed_work(
-					&chip->empty_restart_fg_work,
+					&fg->empty_restart_fg_work,
 					msecs_to_jiffies(RESTART_FG_WORK_MS));
 		}
 	}
@@ -5769,7 +5746,7 @@ static int calculate_delta_time(struct timespec *time_stamp, int *delta_time_s)
 	return 0;
 }
 
-static int calculate_average_current(struct fg_chip *fg)
+static int calculate_average_current(struct fg_dev *fg)
 {
 	int i;
 	int iavg_ma = fg->param.batt_ma;
@@ -5803,7 +5780,7 @@ unchanged:
 	return fg->param.batt_ma_avg;
 }
 
-static void fg_battery_soc_smooth_tracking(struct fg_chip *fg)
+static void fg_battery_soc_smooth_tracking(struct fg_dev *fg)
 {
 	int delta_time = 0;
 	int soc_changed;
@@ -5881,8 +5858,8 @@ static void fg_battery_soc_smooth_tracking(struct fg_chip *fg)
 static void soc_monitor_work(struct work_struct *work)
 {
 	int rc;
-	struct fg_chip *fg = container_of(work,
-				struct fg_chip,
+	struct fg_dev *fg = container_of(work,
+				struct fg_dev,
 				soc_monitor_work.work);
 
 	rc = fg_get_battery_current(fg, &fg->param.batt_ma);
@@ -6054,11 +6031,11 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	INIT_WORK(&fg->esr_filter_work, esr_filter_work);
 	alarm_init(&fg->esr_filter_alarm, ALARM_BOOTTIME,
 			fg_esr_filter_alarm_cb);
-	INIT_DELAYED_WORK(&chip->esr_timer_config_work, fg_esr_timer_config_work);
+	INIT_DELAYED_WORK(&fg->esr_timer_config_work, fg_esr_timer_config_work);
 #ifdef CONFIG_MACH_MI
-	INIT_DELAYED_WORK(&chip->soc_work, soc_work_fn);
-	INIT_DELAYED_WORK(&chip->soc_monitor_work, soc_monitor_work);
-	INIT_DELAYED_WORK(&chip->empty_restart_fg_work, empty_restart_fg_work);
+	INIT_DELAYED_WORK(&fg->soc_work, soc_work_fn);
+	INIT_DELAYED_WORK(&fg->soc_monitor_work, soc_monitor_work);
+	INIT_DELAYED_WORK(&fg->empty_restart_fg_work, empty_restart_fg_work);
 #endif
 
 	fg_create_debugfs(fg);
@@ -6164,9 +6141,9 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	device_init_wakeup(fg->dev, true);
 	schedule_delayed_work(&fg->profile_load_work, 0);
 #ifdef CONFIG_MACH_MI
-	schedule_delayed_work(&chip->soc_work, 0);
-	chip->param.batt_soc = -EINVAL;
-		schedule_delayed_work(&chip->soc_monitor_work,
+	schedule_delayed_work(&fg->soc_work, 0);
+	fg->param.batt_soc = -EINVAL;
+		schedule_delayed_work(&fg->soc_monitor_work,
 					msecs_to_jiffies(MONITOR_SOC_WAIT_MS));
 
 	/*
@@ -6177,7 +6154,7 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	 */
 	if ((volt_uv >= VBAT_RESTART_FG_EMPTY_UV)
 			&& (msoc == 0) && (batt_temp >= TEMP_THR_RESTART_FG))
-		schedule_delayed_work(&chip->empty_restart_fg_work,
+		schedule_delayed_work(&fg->empty_restart_fg_work,
 					msecs_to_jiffies(RESTART_FG_START_WORK_MS));
 #endif
 
@@ -6213,7 +6190,7 @@ static int fg_gen3_resume(struct device *dev)
 	struct fg_gen3_chip *chip = dev_get_drvdata(dev);
 	struct fg_dev *fg = &chip->fg;
 
-	schedule_delayed_work(&chip->esr_timer_config_work, 0);
+	schedule_delayed_work(&fg->esr_timer_config_work, 0);
 	schedule_delayed_work(&chip->ttf_work, 0);
 	if (fg_sram_dump)
 		schedule_delayed_work(&fg->sram_dump_work,

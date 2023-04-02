@@ -1498,11 +1498,6 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE:
 		val->intval = chg->fcc_stepper_enable;
 		break;
-#ifdef CONFIG_MACH_XIAOMI_SDM660
-	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
-		rc = smblib_get_prop_batt_charge_full(chg, val);
-		break;
-#endif
 #ifdef CONFIG_MACH_MI
 	case POWER_SUPPLY_PROP_CHARGER_TYPE:
 		val->intval = chg->real_charger_type;

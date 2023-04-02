@@ -2864,6 +2864,7 @@ int smblib_set_prop_system_temp_level(struct smb_charger *chg,
 		vote(chg->pl_disable_votable, THERMAL_DAEMON_VOTER,false,0);
 #endif
 	else
+#endif
 	vote(chg->pl_disable_votable, THERMAL_DAEMON_VOTER,
 #ifdef CONFIG_MACH_MI
 			(chg->system_temp_level > 8) ? true : false, 0);
