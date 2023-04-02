@@ -4646,9 +4646,9 @@ static int dwc3_msm_gadget_vbus_draw(struct dwc3_msm *mdwc, unsigned int mA)
 
 	psy_type = get_psy_type(mdwc);
 #ifdef CONFIG_MACH_MI
-	if (psy_type == POWER_SUPPLY_TYPE_USB_FLOAT && mA != ENUMERATE_MA)
+	if (psy_type == POWER_SUPPLY_TYPE_USB_FLOAT && mA != ENUMERATE_MA) {
 #else
-	if (psy_type == POWER_SUPPLY_TYPE_USB_FLOAT)
+	if (psy_type == POWER_SUPPLY_TYPE_USB_FLOAT) {
 #endif
 		/*
 		 * Do not notify charger driver for any current and

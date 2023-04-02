@@ -593,7 +593,7 @@ static int qusb_phy_init(struct usb_phy *phy)
 		writel_relaxed(qphy->tune2_val,
 				qphy->base + QUSB2PHY_PORT_TUNE2);
 	}
-#enddif
+#endif
 
 	/* If tune modparam set, override tune value */
 	if (qphy->tune1) {
