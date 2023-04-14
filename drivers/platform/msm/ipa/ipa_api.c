@@ -3717,6 +3717,7 @@ int ipa_disable_wigig_pipe_i(enum ipa_client_type client)
 }
 EXPORT_SYMBOL(ipa_disable_wigig_pipe_i);
 
+#ifdef CONFIG_IPA3
 /**
  * ipa_get_lan_rx_napi() - returns if NAPI is enabled in LAN RX
  */
@@ -3729,6 +3730,7 @@ bool ipa_get_lan_rx_napi(void)
 	return ret;
 }
 EXPORT_SYMBOL(ipa_get_lan_rx_napi);
+#endif
 
 /**
  * ipa_tz_unlock_reg() - Allow AP access to memory regions controlled by TZ
