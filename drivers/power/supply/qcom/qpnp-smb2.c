@@ -1152,11 +1152,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 					      FG_ESR_VOTER);
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
-#ifdef CONFIG_MACH_XIAOMI_SDM660
-		val->intval = POWER_SUPPLY_TECHNOLOGY_LIPO;
-#else
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
-#endif
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_DONE:
 		rc = smblib_get_prop_batt_charge_done(chg, val);
@@ -1188,16 +1184,12 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 	case POWER_SUPPLY_PROP_TEMP:
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
-#ifndef CONFIG_MACH_XIAOMI_SDM660
 		rc = smblib_get_prop_from_bms(chg, psp, val);
 		break;
-#endif
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		rc = smblib_get_prop_from_bms(chg, psp, val);
-#ifndef CONFIG_MACH_XIAOMI_SDM660
 		if (!rc)
 			val->intval *= (-1);
-#endif
 		break;
 	case POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE:
 		val->intval = chg->fcc_stepper_enable;
@@ -1719,23 +1711,6 @@ static int smb2_init_hw(struct smb2 *chip)
 			true, 0);
 	vote(chg->pd_disallowed_votable_indirect, PD_NOT_SUPPORTED_VOTER,
 			chip->dt.no_pd, 0);
-
-#ifdef CONFIG_MACH_XIAOMI_SDM660
-	/* Operate the QC2.0 in 5V/9V mode i.e. Disable 12V */
-	rc = smblib_masked_write(chg, HVDCP_PULSE_COUNT_MAX_REG,
-								PULSE_COUNT_QC2P0_12V | PULSE_COUNT_QC2P0_9V, PULSE_COUNT_QC2P0_9V);
-	if (rc < 0) {
-		dev_err(chg->dev, "Couldn't configure QC2.0 to 9V rc=%d\n", rc);
-		return rc;
-	}
-	/* Operate the QC3.0 to limit vbus to 6.6v*/
-	rc = smblib_masked_write(chg, HVDCP_PULSE_COUNT_MAX_REG, PULSE_COUNT_QC3P0_MASK, 0x8);
-	if (rc < 0) {
-		dev_err(chg->dev, "Couldn't configure QC3.0 to 6.6V rc=%d\n", rc);
-		return rc;
-	}
-#endif
-
 	/*
 	 * AICL configuration:
 	 * start from min and AICL ADC disable
@@ -1901,10 +1876,6 @@ static int smb2_init_hw(struct smb2 *chip)
 		return rc;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_SDM660
-	rc = vote(chg->chg_disable_votable, DEFAULT_VOTER, true, 0);
-#endif
-
 	switch (chip->dt.chg_inhibit_thr_mv) {
 	case 50:
 		rc = smblib_masked_write(chg, CHARGE_INHIBIT_THRESHOLD_CFG_REG,
@@ -1932,10 +1903,6 @@ static int smb2_init_hw(struct smb2 *chip)
 	default:
 		break;
 	}
-
-#ifdef CONFIG_MACH_XIAOMI_SDM660
-	rc = vote(chg->chg_disable_votable, DEFAULT_VOTER, false, 0);
-#endif
 
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure charge inhibit threshold rc=%d\n",
