@@ -1798,10 +1798,6 @@ int ipa_get_smmu_params(struct ipa_smmu_in_params *in,
  */
 int ipa_is_vlan_mode(enum ipa_vlan_ifaces iface, bool *res);
 
-/**
- * ipa_get_lan_rx_napi - returns true if NAPI is enabled in the LAN RX dp
- */
-bool ipa_get_lan_rx_napi(void);
 #else /* (CONFIG_IPA || CONFIG_IPA3) */
 
 /* low-level IPA client Connect / Disconnect */
@@ -2689,11 +2685,18 @@ static inline int ipa_get_prot_id(enum ipa_client_type client)
 	return -EPERM;
 }
 
+#endif /* (CONFIG_IPA || CONFIG_IPA3) */
+
+#ifdef CONFIG_IPA3
+/**
+ * ipa_get_lan_rx_napi - returns true if NAPI is enabled in the LAN RX dp
+ */
+bool ipa_get_lan_rx_napi(void);
+#else
 static inline bool ipa_get_lan_rx_napi(void)
 {
 	return false;
 }
-
-#endif /* (CONFIG_IPA || CONFIG_IPA3) */
+#endif
 
 #endif /* _IPA_H_ */
