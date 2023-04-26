@@ -17,10 +17,10 @@
 	qcom,dc-icl-ua = <2000000>;
 	qcom,fcc-max-ua = <2500000>;
 	qcom,fv-max-uv  = <4400000>;
+	qcom,auto-recharge-soc = <98>;
 	qcom,sw-jeita-enable;
+	qcom,step-charging-enable;
 	qcom,thermal-mitigation
-			= <2500000 2300000 2000000 1500000 1000000 400000 200000>;
-	qcom,thermal-mitigation-china
 			= <2500000 2300000 2000000 1500000 1000000 400000 200000>;
 };
 
@@ -29,6 +29,11 @@
 };
 
 &pm660_fg {
+	qcom,cl-start-capacity = <50>;
+	qcom,cl-max-increment = <5>;
+	qcom,cl-max-decrement = <20>;
+	qcom,hold-soc-while-full;
+	qcom,linearize-soc;
 	qcom,fg-cutoff-voltage = <3400>;
 	qcom,fg-chg-term-current = <200>;
 	qcom,fg-sys-term-current = <300>;
