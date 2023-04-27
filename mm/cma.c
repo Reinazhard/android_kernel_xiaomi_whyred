@@ -145,8 +145,7 @@ static void __init __cma_activate_area(struct cma *cma)
 }
 
 static int cma_alloc_range(struct cma *cma, unsigned long pfn,
-			   unsigned long count, bool no_warn,
-			   struct acr_info *info)
+			   unsigned long count, bool no_warn)
 {
 	if (cma->gcma) {
 		/* GCMA never fails */
@@ -155,8 +154,7 @@ static int cma_alloc_range(struct cma *cma, unsigned long pfn,
 	} else
 		return alloc_contig_range(pfn, pfn + count, MIGRATE_CMA,
 					  GFP_KERNEL |
-					  (no_warn ? __GFP_NOWARN : 0),
-					  info);
+					  (no_warn ? __GFP_NOWARN : 0));
 }
 
 static void cma_free_range(struct cma *cma, unsigned long pfn,
