@@ -1670,18 +1670,6 @@ static int smb1351_parallel_set_chg_suspend(struct smb1351_charger *chip,
 		}
 		chip->parallel_charger_suspended = false;
 	} else {
-#ifdef CONFIG_XIAOMI_SDM660
-		smb1351_enable_volatile_writes(chip);
-		/* control USB suspend via command bits */
-		rc = smb1351_masked_write(chip, VARIOUS_FUNC_REG,
-					APSD_EN_BIT | SUSPEND_MODE_CTRL_BIT,
-						SUSPEND_MODE_CTRL_BY_I2C);
-		if (rc) {
-			pr_err("Couldn't set USB suspend rc=%d\n", rc);
-			return rc;
-		}
-#endif
-
 		rc = smb1351_usb_suspend(chip, CURRENT, true);
 		if (rc)
 			pr_debug("failed to suspend rc=%d\n", rc);
