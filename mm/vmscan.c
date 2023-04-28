@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: GPL-2.0
 /*
  *  linux/mm/vmscan.c
@@ -4469,7 +4470,7 @@ retry:
 
 		/* retry pages that may have missed page_rotate_reclaimable() */
 		list_move(&page->lru, &clean);
-		sc->nr_scanned -= compound_nr(page);
+		sc->nr_scanned -= 1 << compound_order(page);
 	}
 
 	spin_lock_irq(&pgdat->lru_lock);
