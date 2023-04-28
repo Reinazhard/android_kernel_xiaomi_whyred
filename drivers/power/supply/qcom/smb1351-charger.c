@@ -533,10 +533,6 @@ static int pre_chg_current[] = {
 	200, 300, 400, 500, 600, 700,
 };
 
-#ifdef CONFIG_XIAOMI_SDM660
-bool is_global_version = false;
-#endif
-
 static int smb1351_read_reg(struct smb1351_charger *chip, int reg, u8 *val)
 {
 	s32 ret;
@@ -738,9 +734,7 @@ static int smb1351_fastchg_current_set(struct smb1351_charger *chip,
 		(fastchg_current > SMB1351_CHG_FAST_MAX_MA)) {
 		pr_err("bad pre_fastchg current mA=%d asked to set\n",
 					fastchg_current);
-#ifndef CONFIG_XIAOMI_SDM660
 		return -EINVAL;
-#endif
 	}
 
 	/*
@@ -1574,9 +1568,7 @@ static int smb1351_parallel_set_chg_suspend(struct smb1351_charger *chip,
 	if (chip->parallel_charger_suspended == suspend) {
 		pr_debug("Skip same state request suspended = %d suspend=%d\n",
 				chip->parallel_charger_suspended, !suspend);
-#ifndef CONFIG_XIAOMI_SDM660
 		return 0;
-#endif
 	}
 
 	if (!suspend) {
@@ -2744,16 +2736,6 @@ static int is_parallel_charger(struct i2c_client *client)
 	return of_property_read_bool(node, "qcom,parallel-charger");
 }
 
-#ifdef CONFIG_XIAOMI_SDM660
-static int __init hwc_setup(char *s)
-{
-	is_global_version = strcmp(s, "Global") != 0;
-	return 1;
-}
-
-__setup("androidboot.hwc=", hwc_setup);
-#endif
-
 static int create_debugfs_entries(struct smb1351_charger *chip)
 {
 	struct dentry *ent;
@@ -2970,12 +2952,6 @@ static int smb1351_parallel_charger_probe(struct i2c_client *client,
 	struct smb1351_charger *chip;
 	struct device_node *node = client->dev.of_node;
 	struct power_supply_config parallel_psy_cfg = {};
-
-#ifdef CONFIG_XIAOMI_SDM660
-	if (is_global_version) {
-		return -ENODEV;
-	}
-#endif
 
 	chip = devm_kzalloc(&client->dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
