@@ -5112,6 +5112,7 @@ static ssize_t lru_gen_seq_write(struct file *file, const char __user *src,
 	unsigned int flags;
 	struct blk_plug plug;
 	int err = -EINVAL;
+	struct reclaim_state reclaim_state;
 	struct scan_control sc = {
 		.may_writepage = true,
 		.may_unmap = true,
@@ -5129,7 +5130,7 @@ static ssize_t lru_gen_seq_write(struct file *file, const char __user *src,
 		return -EFAULT;
 	}
 
-	set_task_reclaim_state(current, &sc.reclaim_state);
+	current->reclaim_state = &reclaim_state;
 	flags = memalloc_noreclaim_save();
 	blk_start_plug(&plug);
 	if (!set_mm_walk(NULL)) {
@@ -5169,7 +5170,7 @@ done:
 	clear_mm_walk();
 	blk_finish_plug(&plug);
 	memalloc_noreclaim_restore(flags);
-	set_task_reclaim_state(current, NULL);
+	current->reclaim_state = NULL;
 
 	kvfree(buf);
 
