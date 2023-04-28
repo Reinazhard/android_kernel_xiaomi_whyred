@@ -1772,8 +1772,8 @@ static struct ctl_table vm_table[] = {
 		.maxlen         = sizeof(want_old_faultaround_pte),
 		.mode           = 0644,
 		.proc_handler   = proc_dointvec_minmax,
-		.extra1         = SYSCTL_ZERO,
-		.extra2         = SYSCTL_ONE,
+		.extra1         = &zero,
+		.extra2         = &one,
 	},
 #ifdef CONFIG_HUGETLB_PAGE
 	{
