@@ -183,6 +183,7 @@ struct teo_bin {
  * @time_span_ns: Time between idle state selection and post-wakeup update.
  * @sleep_length_ns: Time till the closest timer event (at the selection time).
  * @state_bins: Idle state data bins for this CPU.
+ * @last_state: Idle state entered by the CPU last time.
  * @total: Grand total of the "intercepts" and "hits" metrics for all bins.
  * @next_recent_idx: Index of the next @recent_idx entry to update.
  * @recent_idx: Indices of bins corresponding to recent "intercepts".
@@ -193,6 +194,7 @@ struct teo_cpu {
 	s64 time_span_ns;
 	s64 sleep_length_ns;
 	struct teo_bin state_bins[CPUIDLE_STATE_MAX];
+	int last_state;
 	unsigned int total;
 	int next_recent_idx;
 	int recent_idx[NR_RECENT];
@@ -231,7 +233,7 @@ static void teo_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 		 */
 		measured_us = UINT_MAX;
 	} else {
-		unsigned int lat = drv->states[dev->last_state_idx].exit_latency;
+		unsigned int lat = drv->states[cpu_data->last_state].exit_latency;
 
 		/*
 		 * The computations below are to determine whether or not the
@@ -241,6 +243,7 @@ static void teo_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 		 * overhead.
 		 */
 		measured_us = dev->last_residency;
+
 		/*
 		 * The delay between the wakeup and the first instruction
 		 * executed by the CPU is not likely to be worst-case every
@@ -327,7 +330,7 @@ static int teo_find_shallower_state(struct cpuidle_driver *drv,
 	int i;
 
 	for (i = state_idx - 1; i >= 0; i--) {
-		if (dev->states_usage[i].disable ||
+		if (drv->states[i].disabled || dev->states_usage[i].disable ||
 				(no_poll && drv->states[i].flags & CPUIDLE_FLAG_POLLING))
 			continue;
 
@@ -362,9 +365,9 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 	s64 duration_us;
 	int i;
 
-	if (dev->last_state_idx >= 0) {
+	if (cpu_data->last_state >= 0) {
 		teo_update(drv, dev);
-		dev->last_state_idx = -1;
+		cpu_data->last_state = -1;
 	}
 
 	cpu_data->time_span_ns = local_clock();
@@ -390,7 +393,8 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 	 */
 	if (drv->state_count < 3 && cpu_data->utilized) {
 		for (i = 0; i < drv->state_count; ++i) {
-			if (!dev->states_usage[i].disable && !(drv->states[i].flags & CPUIDLE_FLAG_POLLING)) {
+			if ((!drv->states[i].disabled || !dev->states_usage[i].disable) &&
+						!(drv->states[i].flags & CPUIDLE_FLAG_POLLING)) {
 				idx = i;
 				goto end;
 			}
@@ -416,7 +420,7 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 		hit_sum += prev_bin->hits;
 		recent_sum += prev_bin->recent;
 
-		if (dev->states_usage[i].disable)
+		if (drv->states[i].disabled || dev->states_usage[i].disable)
 			continue;
 
 		if (idx < 0) {
@@ -486,7 +490,7 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 			    (!alt_intercepts ||
 			     2 * intercept_sum > idx_intercept_sum)) {
 				if (teo_time_ok(span_us) &&
-				    !dev->states_usage[i].disable) {
+				    (drv->states[i].disabled || !dev->states_usage[i].disable)) {
 					idx = i;
 					duration_us = span_us;
 				} else {
@@ -501,7 +505,7 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 				break;
 			}
 
-			if (dev->states_usage[i].disable)
+			if (drv->states[i].disabled || dev->states_usage[i].disable)
 				continue;
 
 			if (!teo_time_ok(span_us)) {
@@ -568,7 +572,7 @@ static void teo_reflect(struct cpuidle_device *dev, int state)
 {
 	struct teo_cpu *cpu_data = per_cpu_ptr(&teo_cpus, dev->cpu);
 
-	dev->last_state_idx = state;
+	cpu_data->last_state = state;
 	/*
 	 * If the wakeup was not "natural", but triggered by one of the safety
 	 * nets, assume that the CPU might have been idle for the entire sleep
@@ -592,7 +596,7 @@ static int teo_enable_device(struct cpuidle_driver *drv,
 			     struct cpuidle_device *dev)
 {
 	struct teo_cpu *cpu_data = per_cpu_ptr(&teo_cpus, dev->cpu);
-	unsigned long max_capacity = arch_scale_cpu_capacity(dev->cpu);
+	unsigned long max_capacity = arch_scale_cpu_capacity(NULL, dev->cpu);
 	int i;
 
 	memset(cpu_data, 0, sizeof(*cpu_data));
