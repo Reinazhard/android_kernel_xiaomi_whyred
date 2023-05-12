@@ -1573,9 +1573,7 @@ static int smb1351_parallel_set_chg_suspend(struct smb1351_charger *chip,
 	if (chip->parallel_charger_suspended == suspend) {
 		pr_debug("Skip same state request suspended = %d suspend=%d\n",
 				chip->parallel_charger_suspended, !suspend);
-#ifndef CONFIG_XIAOMI_SDM660
 		return 0;
-#endif
 	}
 
 	if (!suspend) {
