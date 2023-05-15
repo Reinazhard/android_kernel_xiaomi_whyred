@@ -29,11 +29,6 @@
 };
 
 &pm660_fg {
-	qcom,cl-start-capacity = <50>;
-	qcom,cl-max-increment = <5>;
-	qcom,cl-max-decrement = <20>;
-	qcom,hold-soc-while-full;
-	qcom,linearize-soc;
 	qcom,fg-cutoff-voltage = <3400>;
 	qcom,fg-chg-term-current = <200>;
 	qcom,fg-sys-term-current = <300>;
