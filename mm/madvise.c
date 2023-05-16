@@ -276,7 +276,6 @@ static long madvise_willneed(struct vm_area_struct *vma,
 			     struct vm_area_struct **prev,
 			     unsigned long start, unsigned long end)
 {
-	struct mm_struct *mm = vma->vm_mm;
 	struct file *file = vma->vm_file;
 
 	*prev = vma;
@@ -333,7 +332,7 @@ static int madvise_cold_or_pageout_pte_range(pmd_t *pmd,
 		pmd_t orig_pmd;
 		unsigned long next = pmd_addr_end(addr, end);
 
-		tlb_change_page_size(tlb, HPAGE_PMD_SIZE);
+		tlb_remove_check_page_size_change(tlb, HPAGE_PMD_SIZE);
 		ptl = pmd_trans_huge_lock(pmd, vma);
 		if (!ptl)
 			return 0;
@@ -394,7 +393,7 @@ huge_unlock:
 		return 0;
 regular_page:
 #endif
-	tlb_change_page_size(tlb, PAGE_SIZE);
+	tlb_remove_check_page_size_change(tlb, PAGE_SIZE);
 	orig_pte = pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
@@ -728,10 +727,10 @@ static int madvise_free_single_vma(struct vm_area_struct *vma,
 	update_hiwater_rss(mm);
 
 	mmu_notifier_invalidate_range_start(mm, start, end);
-	tlb_start_vma(&tlb, vma);
+	tlb_start_vma((&tlb), vma);
 	walk_page_range(vma->vm_mm, start, end,
 			&madvise_free_walk_ops, &tlb);
-	tlb_end_vma(&tlb, vma);
+	tlb_end_vma((&tlb), vma);
 	mmu_notifier_invalidate_range_end(mm, start, end);
 	tlb_finish_mmu(&tlb, start, end);
 
