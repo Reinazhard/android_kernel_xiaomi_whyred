@@ -120,7 +120,7 @@ static void dfs_radar_summary_parse(struct wlan_dfs *dfs,
 		size_t len,
 		struct rx_radar_status *rsu)
 {
-	uint32_t rs[3];
+	uint32_t rs[4];
 
 	/* Drop out if we have < 2 DWORDs available. */
 	if (len < sizeof(rs)) {
