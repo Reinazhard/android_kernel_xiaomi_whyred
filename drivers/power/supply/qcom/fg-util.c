@@ -715,11 +715,7 @@ static inline bool is_sec_access(struct fg_dev *fg, int addr)
 	if (fg->version != GEN3_FG)
 		return false;
 
-#ifdef CONFIG_XIAOMI_TULIP
-	return ((addr & 0x00FF) > 0xBA);
-#else
-	return ((addr & 0x00FF) > 0xD0);
-#endif
+	return ((addr & 0x00FF) > 0xB8);
 }
 
 int fg_write(struct fg_dev *fg, int addr, u8 *val, int len)
